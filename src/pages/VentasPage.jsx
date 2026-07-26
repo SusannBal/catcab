@@ -21,9 +21,10 @@ export default function VentasPage({ products, sales, loading }) {
     }, 0)
     const profit = sellerSales.reduce((acc, s) => {
       const prod = products.find(p => p.id === s.product_id)
-      if (!prod) return acc
-      const salePrice = s.price_at_sale ?? prod.price ?? 0
-      return acc + (salePrice - (prod.buy_price || 0))
+      const salePrice = s.price_at_sale ?? prod?.price ?? 0
+      // Usa buy_price_at_sale si está guardado, si no cae al buy_price del producto
+      const buyCost = s.buy_price_at_sale ?? prod?.buy_price ?? 0
+      return acc + (salePrice - buyCost)
     }, 0)
     return { units, revenue, profit }
   }
@@ -51,8 +52,8 @@ export default function VentasPage({ products, sales, loading }) {
     <div>
       {/* Top stats — totales generales */}
       <div style={{
-        background: 'var(--black)', padding: '20px 24px 8px',
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16,
+        background: 'var(--black)', padding: '16px var(--page-pad) 8px',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12,
       }}>
         <MiniCard icon={<ShoppingBag size={16}/>} label="Total vendidas" value={allStats.units} />
         <MiniCard icon={<DollarSign size={16}/>}  label="Ingresos totales" value={`Bs. ${allStats.revenue.toFixed(2)}`} />
@@ -61,8 +62,8 @@ export default function VentasPage({ products, sales, loading }) {
 
       {/* Per-seller row */}
       <div style={{
-        background: 'var(--black)', padding: '8px 24px 20px',
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16,
+        background: 'var(--black)', padding: '8px var(--page-pad) 16px',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12,
         borderTop: '1px solid rgba(255,255,255,0.06)',
       }}>
         <SellerCard letter="S" color={SELLER_COLORS.S} stats={sStats} />
@@ -72,32 +73,34 @@ export default function VentasPage({ products, sales, loading }) {
       {/* Filter bar */}
       <div style={{
         background: 'var(--white)', borderBottom: '1px solid var(--gray-100)',
-        padding: '12px 24px', display: 'flex', gap: 8, alignItems: 'center',
+        padding: '12px var(--page-pad)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
       }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-500)', marginRight: 4 }}>Filtrar por:</span>
-        {filterBtns.map(b => (
-          <button key={b.key} onClick={() => setFilter(b.key)} style={{
-            padding: '6px 18px', borderRadius: 6, border: 'none', cursor: 'pointer',
-            fontWeight: 800, fontSize: 13,
-            background: filter === b.key ? 'var(--black)' : 'var(--gray-100)',
-            color: filter === b.key ? b.color : 'var(--gray-500)',
-            boxShadow: filter === b.key ? `0 0 0 2px ${b.color}40` : 'none',
-            transition: 'all 0.15s',
-          }}>
-            {b.label === 'Todos' ? 'Todos' : (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <User size={11} /> {b.label}
-              </span>
-            )}
-          </button>
-        ))}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {filterBtns.map(b => (
+            <button key={b.key} onClick={() => setFilter(b.key)} style={{
+              padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
+              fontWeight: 800, fontSize: 12,
+              background: filter === b.key ? 'var(--black)' : 'var(--gray-100)',
+              color: filter === b.key ? b.color : 'var(--gray-500)',
+              boxShadow: filter === b.key ? `0 0 0 2px ${b.color}40` : 'none',
+              transition: 'all 0.15s',
+            }}>
+              {b.label === 'Todos' ? 'Todos' : (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <User size={11} /> {b.label}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
         <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--gray-400)' }}>
           {filteredSales.length} venta(s)
         </span>
       </div>
 
       {/* Sales history */}
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: 'var(--page-pad)' }}>
         <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
           <div style={{
             background: 'var(--black)', color: 'var(--white)',
@@ -125,9 +128,10 @@ export default function VentasPage({ products, sales, loading }) {
                 }, 0)
                 const dayProfit = daySales.reduce((acc, s) => {
                   const prod = products.find(p => p.id === s.product_id)
-                  if (!prod) return acc
-                  const salePrice = s.price_at_sale ?? prod.price ?? 0
-                  return acc + (salePrice - (prod.buy_price || 0))
+                  const salePrice = s.price_at_sale ?? prod?.price ?? 0
+                  // Usa el costo histórico guardado en la venta
+                  const buyCost = s.buy_price_at_sale ?? prod?.buy_price ?? 0
+                  return acc + (salePrice - buyCost)
                 }, 0)
 
                 return (
@@ -190,11 +194,14 @@ export default function VentasPage({ products, sales, loading }) {
                                         </span>
                                       )}
                                     </p>
-                                    {prod?.buy_price != null && salePrice != null && (
-                                      <p style={{ fontSize: 10, color: 'var(--success)', fontWeight: 700 }}>
-                                        +Bs. {(salePrice - prod.buy_price).toFixed(2)}
-                                      </p>
-                                    )}
+                                    {s.buy_price_at_sale != null && salePrice != null && (() => {
+                                      const profit = salePrice - s.buy_price_at_sale
+                                      return (
+                                        <p style={{ fontSize: 10, color: profit >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 700 }}>
+                                          {profit >= 0 ? '+' : ''}Bs. {profit.toFixed(2)}
+                                        </p>
+                                      )
+                                    })()}
                                   </>
                                 )
                               })()}

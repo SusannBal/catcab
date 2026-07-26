@@ -17,7 +17,11 @@
   --radius-lg: 16px;
   --shadow: 0 2px 12px rgba(0,0,0,0.08);
   --font: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --page-pad: 24px;
+  --topbar-h: 56px;
 }
+
+/* ── Base ── */
 html { font-family: var(--font); background: var(--gray-50); color: var(--black); }
 body { min-height: 100vh; }
 button { cursor: pointer; font-family: inherit; }
@@ -27,3 +31,59 @@ input, select, textarea { font-family: inherit; }
 ::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 3px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+/* ── Mobile overrides ── */
+@media (max-width: 640px) {
+  :root {
+    --page-pad: 12px;
+    --topbar-h: 50px;
+  }
+
+  /* Topbar: only icons + label on mobile, scrollable */
+  .topbar-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .topbar-tabs::-webkit-scrollbar { display: none; }
+
+  /* Tables become scrollable blocks */
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Stack grids to 1 column on mobile */
+  .grid-responsive {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Cards at full width */
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+  }
+
+  /* Stat cards: 2 columns */
+  .stat-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Hide less-important columns in tables on mobile */
+  .hide-mobile { display: none !important; }
+
+  /* Full-width inputs */
+  input[type="text"], input[type="number"], input[type="search"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Reduce font sizes slightly */
+  h1 { font-size: 16px !important; }
+  h2 { font-size: 14px !important; }
+}
+
+/* ── Tablet ── */
+@media (max-width: 900px) {
+  :root { --page-pad: 16px; }
+  .hide-tablet { display: none !important; }
+}

@@ -47,9 +47,9 @@ export default function CatalogPage({ products, stockOf, loading }) {
       {/* Controls */}
       <div style={{
         background: 'var(--white)', borderBottom: '1px solid var(--gray-100)',
-        padding: '12px 24px', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
+        padding: '12px var(--page-pad)', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
       }}>
-        <div style={{ position: 'relative', flex: '0 0 220px' }}>
+        <div style={{ position: 'relative', flex: '1 1 200px' }}>
           <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)' }} />
           <input
             value={search} onChange={e => setSearch(e.target.value)}
@@ -65,7 +65,7 @@ export default function CatalogPage({ products, stockOf, loading }) {
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {categories.map(cat => (
             <button key={cat} onClick={() => setCategory(cat)} style={{
-              padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+              padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
               border: category === cat ? '2px solid var(--black)' : '1.5px solid var(--gray-200)',
               background: category === cat ? 'var(--black)' : 'var(--white)',
               color: category === cat ? 'var(--white)' : 'var(--gray-600)',
@@ -81,9 +81,9 @@ export default function CatalogPage({ products, stockOf, loading }) {
       </div>
 
       {/* Printable area */}
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: 'var(--page-pad)' }}>
         {loading ? <Spinner /> : (
-          <div id="catalog-print" style={{ background: 'var(--white)', padding: 24, borderRadius: 'var(--radius-md)' }}>
+          <div id="catalog-print" style={{ background: 'var(--white)', padding: 'var(--page-pad)', borderRadius: 'var(--radius-md)' }}>
             {/* Header */}
             <div style={{
               background: 'var(--black)', color: 'var(--white)',
@@ -107,10 +107,10 @@ export default function CatalogPage({ products, stockOf, loading }) {
                 Sin productos para mostrar.
               </div>
             ) : (
-              <div style={{
+              <div className="card-grid" style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
-                gap: 16,
+                gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+                gap: 12,
               }}>
                 {visible.map(p => {
                   const stock = stockOf(p)

@@ -3,7 +3,7 @@ import { FileDown, Minus, RotateCcw, TrendingUp, DollarSign, ShoppingBag, Packag
 import { exportCatalogPdf } from '../lib/exportPdf'
 import { Btn, Spinner } from '../components/UI'
 
-export default function InventarioPage({ products, sales, stockOf, soldMap, totalProfit, totalRevenue, registerSale, undoLastSale, loading }) {
+export default function InventarioPage({ products, sales, entradas, stockOf, soldMap, totalProfit, totalRevenue, registerSale, undoLastSale, getFifoCost, loading }) {
   const [exporting, setExp] = useState(false)
   const [search,   setSearch] = useState('')
   const [confirm,  setConfirm] = useState(null) // { id, seller } waiting confirm
@@ -18,13 +18,51 @@ export default function InventarioPage({ products, sales, stockOf, soldMap, tota
     setExp(false)
   }
 
+  // Calcula de cuál lote (Entrada 1, Entrada 2, etc.) se tomará la próxima venta
+  function getBatchLabel(productId) {
+    const product = products.find(p => p.id === productId)
+    if (!product) return null
+
+    // Construir lotes igual que en getFifoCost
+    const batches = []
+    if ((Number(product.initial_stock) || 0) > 0) {
+      batches.push({ label: 'Stock inicial', cost: Number(product.buy_price) || 0 })
+    }
+    const prodEntradas = (entradas || [])
+      .filter(e => e.product_id === productId)
+      .sort((a, b) => new Date(a.entered_at) - new Date(b.entered_at))
+    prodEntradas.forEach((e, i) => {
+      batches.push({ label: `Entrada ${i + 1}`, cost: Number(e.buy_price) || 0, cantidad: Number(e.cantidad) })
+    })
+
+    if (batches.length === 0) return null
+
+    // Cuántas ventas ya se hicieron
+    const totalSold = (sales || []).filter(s => s.product_id === productId).length
+    // Consumir lotes igual que en getFifoCost para encontrar el lote actual
+    let batchIdx = 0
+    let remaining = Number(product.initial_stock) || 0
+    for (let i = 0; i < totalSold; i++) {
+      if (remaining > 0) remaining--
+      while (remaining === 0 && batchIdx < batches.length - 1) {
+        batchIdx++
+        const e = prodEntradas[batchIdx - 1] // entradas start at index 1 in batches
+        remaining = batchIdx < batches.length ? (e?.cantidad ?? 0) : 0
+        if (remaining > 0) break
+      }
+    }
+
+    return batches[batchIdx] ?? null
+  }
+
   async function handleSale(productId) {
     if (confirm?.id === productId) {
-      await registerSale(productId, confirm.seller, confirm.price)
+      await registerSale(productId, confirm.seller, confirm.price, confirm.batchCost ?? null)
       setConfirm(null)
     } else {
       const prod = products.find(p => p.id === productId)
-      setConfirm({ id: productId, seller: 'S', price: prod?.price ?? '' })
+      const defaultCost = getFifoCost(productId)
+      setConfirm({ id: productId, seller: 'S', price: prod?.price ?? '', batchCost: defaultCost })
     }
   }
 
@@ -48,8 +86,8 @@ export default function InventarioPage({ products, sales, stockOf, soldMap, tota
     <div>
       {/* Stats cards */}
       <div style={{
-        background: 'var(--black)', padding: '20px 24px',
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16,
+        background: 'var(--black)', padding: '20px var(--page-pad)',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12,
       }}>
         <StatCard icon={<TrendingUp size={18}/>} label="Ganancia total" value={`Bs. ${totalProfit.toFixed(2)}`} accent />
         <StatCard icon={<DollarSign size={18}/>} label="Ingresos totales" value={`Bs. ${totalRevenue.toFixed(2)}`} />
@@ -151,48 +189,6 @@ export default function InventarioPage({ products, sales, stockOf, soldMap, tota
                         <td style={{ padding:'12px 16px' }}>
                           {stock <= 0 ? (
                             <span style={{ fontSize:11, color:'var(--gray-400)' }}>Sin stock</span>
-                          ) : confirm?.id === p.id ? (
-                            <div style={{ display:'flex', flexDirection:'column', gap:6, background:'var(--gray-50)', padding:'8px 10px', borderRadius:'var(--radius-sm)', border:'1px solid var(--gray-200)' }}>
-                              {/* Seller picker */}
-                              <div style={{ display:'flex', gap:4, alignItems:'center' }}>
-                                <span style={{ fontSize:10, color:'var(--gray-500)', fontWeight:700, whiteSpace:'nowrap' }}>¿Quién?</span>
-                                {['S','F','N'].map(opt => (
-                                  <button key={opt} onClick={() => setConfirm(c => ({ ...c, seller: opt }))}
-                                    style={{
-                                      width:24, height:24, borderRadius:5, border:'none', cursor:'pointer',
-                                      fontWeight:800, fontSize:11,
-                                      background: confirm.seller === opt ? 'var(--black)' : 'var(--gray-200)',
-                                      color: confirm.seller === opt ? 'var(--accent)' : 'var(--gray-600)',
-                                      transition:'all 0.15s',
-                                    }}>{opt}</button>
-                                ))}
-                              </div>
-                              {/* Custom price picker with Pencil */}
-                              <div style={{ display:'flex', gap:4, alignItems:'center' }}>
-                                <span style={{ fontSize:10, color:'var(--gray-500)', fontWeight:700, whiteSpace:'nowrap', display:'flex', alignItems:'center', gap:2 }}>
-                                  <Pencil size={10}/> Precio:
-                                </span>
-                                <div style={{ display:'flex', alignItems:'center', background:'var(--white)', border:'1px solid var(--gray-300)', borderRadius:4, padding:'1px 5px' }}>
-                                  <span style={{ fontSize:10, fontWeight:700, color:'var(--gray-500)', marginRight:2 }}>Bs.</span>
-                                  <input
-                                    type="number"
-                                    step="0.5"
-                                    value={confirm.price ?? ''}
-                                    onChange={e => setConfirm(c => ({ ...c, price: e.target.value }))}
-                                    style={{ width:50, border:'none', outline:'none', fontSize:11, fontWeight:800, background:'transparent' }}
-                                  />
-                                </div>
-                              </div>
-                              {/* Action buttons */}
-                              <div style={{ display:'flex', gap:4 }}>
-                                <Btn variant="danger" onClick={() => handleSale(p.id)} style={{ padding:'4px 8px', fontSize:11 }}>
-                                  <Minus size={11}/> Confirmar
-                                </Btn>
-                                <Btn variant="ghost" onClick={() => setConfirm(null)} style={{ padding:'4px 6px', fontSize:11 }}>
-                                  Cancelar
-                                </Btn>
-                              </div>
-                            </div>
                           ) : (
                             <Btn variant="success" onClick={() => handleSale(p.id)} style={{ padding:'5px 14px', fontSize:12 }}>
                               <Minus size={12}/> Vendí 1
@@ -222,6 +218,162 @@ export default function InventarioPage({ products, sales, stockOf, soldMap, tota
           )}
         </div>
 
+        {/* Modal para Confirmar Venta */}
+        {confirm && (() => {
+          const p = products.find(prod => prod.id === confirm.id)
+          if (!p) return null
+          const isCAB09 = p.code === 'CAB-09'
+
+          return (
+            <div style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 1000, padding: 16
+            }}>
+              <div style={{
+                background: 'var(--white)', width: '100%', maxWidth: 380,
+                borderRadius: 'var(--radius-md)', padding: 20,
+                boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                display: 'flex', flexDirection: 'column', gap: 16,
+                animation: 'fadeIn 0.2s ease-out'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--gray-100)', paddingBottom: 10 }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 900 }}>Confirmar Venta</h3>
+                  <button onClick={() => setConfirm(null)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--gray-400)' }}>✕</button>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {p.image_url && <img src={p.image_url} alt="" style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--gray-100)' }} />}
+                  <div>
+                    <p style={{ fontWeight: 800, fontSize: 14 }}>{p.name}</p>
+                    <p style={{ fontSize: 11, color: 'var(--gray-500)' }}>Cód: {p.code || 'S/C'}</p>
+                  </div>
+                </div>
+
+                {/* Batch Picker */}
+                {(() => {
+                  const prodEntradas = (entradas || [])
+                    .filter(e => e.product_id === p.id)
+                    .sort((a, b) => new Date(a.entered_at) - new Date(b.entered_at))
+                  
+                  const rawLots = []
+                  if ((Number(p.initial_stock) || 0) > 0 && p.buy_price != null) {
+                    rawLots.push({ label: 'Stock inicial', cost: Number(p.buy_price) })
+                  }
+                  prodEntradas.forEach((e, i) => {
+                    rawLots.push({ label: `Entrada ${i + 1}`, cost: Number(e.buy_price) })
+                  })
+
+                  // Filtrar por costos únicos para no mostrar botones duplicados con el mismo precio
+                  const uniqueCostLots = []
+                  const seenCosts = new Set()
+                  for (const lot of rawLots) {
+                    if (!seenCosts.has(lot.cost)) {
+                      seenCosts.add(lot.cost)
+                      uniqueCostLots.push(lot)
+                    }
+                  }
+
+                  // Si hay más de un costo DIFERENTE, mostrar selector de lotes por precio
+                  if (uniqueCostLots.length > 1) {
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-600)' }}>¿De qué costo proviene la venta?</label>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {uniqueCostLots.map((lot, idx) => {
+                            const selected = confirm.batchCost === lot.cost
+                            return (
+                              <button key={idx}
+                                onClick={() => setConfirm(c => ({ ...c, batchCost: lot.cost }))}
+                                style={{
+                                  padding: '8px 12px', borderRadius: 8,
+                                  border: selected ? '2px solid var(--black)' : '1.5px solid var(--gray-300)',
+                                  cursor: 'pointer', fontSize: 11, fontWeight: 800,
+                                  background: selected ? 'var(--black)' : 'var(--gray-50)',
+                                  color: selected ? 'var(--accent)' : 'var(--gray-700)',
+                                  flex: '1 1 auto', textAlign: 'center', transition: 'all 0.15s'
+                                }}
+                              >
+                                📦 Costo: Bs. {lot.cost}<br/><span style={{ fontSize: 10, opacity: 0.75 }}>({lot.label})</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  const batch = getBatchLabel(p.id)
+                  if (!batch) return null
+                  const isInitial = batch.label === 'Stock inicial'
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-600)' }}>Lote asignado:</span>
+                      <div style={{
+                        fontSize: 12, fontWeight: 800, padding: '8px 12px', borderRadius: 8,
+                        background: isInitial ? '#fff3cd' : '#d4edda',
+                        color: isInitial ? '#856404' : '#155724',
+                        border: isInitial ? '1px solid #ffc107' : '1px solid #28a745',
+                        display: 'flex', justifyContent: 'space-between'
+                      }}>
+                        <span>📦 {batch.label}</span>
+                        <span>Costo: Bs. {batch.cost}</span>
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Seller selection */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-600)' }}>¿Quién realizó la venta?</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {['S', 'F', 'N'].map(opt => (
+                      <button key={opt} onClick={() => setConfirm(c => ({ ...c, seller: opt }))}
+                        style={{
+                          flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', cursor: 'pointer',
+                          fontWeight: 800, fontSize: 13,
+                          background: confirm.seller === opt ? 'var(--black)' : 'var(--gray-100)',
+                          color: confirm.seller === opt ? 'var(--accent)' : 'var(--gray-600)',
+                          transition: 'all 0.15s',
+                        }}>{opt}</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Custom price */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-600)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Pencil size={11} /> Precio de venta:
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', background: 'var(--gray-50)', border: '1.5px solid var(--gray-200)', borderRadius: 8, padding: '6px 12px' }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--gray-500)', marginRight: 4 }}>Bs.</span>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={confirm.price ?? ''}
+                      onChange={e => setConfirm(c => ({ ...c, price: e.target.value }))}
+                      style={{ width: '100%', border: 'none', outline: 'none', fontSize: 14, fontWeight: 800, background: 'transparent' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  <Btn variant="danger"
+                    onClick={() => handleSale(p.id)}
+                    style={{ flex: 2, padding: '10px 14px', fontSize: 13, justifyContent: 'center' }}>
+                    <Minus size={14} /> Confirmar Venta
+                  </Btn>
+                  <Btn variant="ghost" onClick={() => setConfirm(null)} style={{ flex: 1, padding: '10px 14px', fontSize: 13, justifyContent: 'center' }}>
+                    Cancelar
+                  </Btn>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
         {/* ── Sales history ── */}
         <div style={{ background:'var(--white)', borderRadius:'var(--radius-md)', boxShadow:'var(--shadow)', overflow:'hidden' }}>
           <div style={{
@@ -245,10 +397,9 @@ export default function InventarioPage({ products, sales, stockOf, soldMap, tota
                   return acc + salePrice
                 }, 0)
                 const dayProfit = daySales.reduce((acc, s) => {
-                  const prod = products.find(p => p.id === s.product_id)
-                  if (!prod) return acc
-                  const salePrice = s.price_at_sale ?? prod.price ?? 0
-                  return acc + (salePrice - (prod.buy_price || 0))
+                  const salePrice = s.price_at_sale ?? 0
+                  const buyPrice = s.buy_price_at_sale ?? 0
+                  return acc + (salePrice - buyPrice)
                 }, 0)
 
                 return (
@@ -300,11 +451,14 @@ export default function InventarioPage({ products, sales, stockOf, soldMap, tota
                                         </span>
                                       )}
                                     </p>
-                                    {prod?.buy_price != null && salePrice != null && (
-                                      <p style={{ fontSize: 10, color: 'var(--success)', fontWeight: 700 }}>
-                                        +Bs. {(salePrice - prod.buy_price).toFixed(2)}
-                                      </p>
-                                    )}
+                                    {s.buy_price_at_sale != null && salePrice != null && (() => {
+                                      const profit = salePrice - s.buy_price_at_sale
+                                      return (
+                                        <p style={{ fontSize: 10, color: profit >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 700 }}>
+                                          {profit >= 0 ? '+' : ''}Bs. {profit.toFixed(2)}
+                                        </p>
+                                      )
+                                    })()}
                                   </>
                                 )
                               })()}
