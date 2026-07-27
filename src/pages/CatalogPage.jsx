@@ -145,7 +145,7 @@ export default function CatalogPage({ products, stockOf, loading }) {
                         overflow: 'hidden', borderBottom: '1px solid var(--gray-100)',
                       }}>
                         {p.image_url
-                          ? <img src={p.image_url} alt={p.name} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }} />
+                          ? <img src={p.image_url} alt={p.name} crossOrigin="anonymous" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }} />
                           : <span style={{ color: 'var(--gray-300)', fontSize: 12 }}>Sin imagen</span>
                         }
                       </div>

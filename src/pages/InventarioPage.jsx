@@ -149,7 +149,7 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
                         <td style={{ padding:'12px 16px' }}>
                           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                             {p.image_url
-                              ? <img src={p.image_url} alt="" crossOrigin="anonymous" style={{ width:36, height:36, objectFit:'contain', borderRadius:4, border:'1px solid var(--gray-100)' }}/>
+                              ? <img src={p.image_url} alt="" crossOrigin="anonymous" loading="lazy" style={{ width:36, height:36, objectFit:'contain', borderRadius:4, border:'1px solid var(--gray-100)' }}/>
                               : <div style={{ width:36, height:36, background:'var(--gray-100)', borderRadius:4 }}/>
                             }
                             <div>
@@ -244,7 +244,7 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  {p.image_url && <img src={p.image_url} alt="" style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--gray-100)' }} />}
+                  {p.image_url && <img src={p.image_url} alt="" loading="lazy" style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--gray-100)' }} />}
                   <div>
                     <p style={{ fontWeight: 800, fontSize: 14 }}>{p.name}</p>
                     <p style={{ fontSize: 11, color: 'var(--gray-500)' }}>Cód: {p.code || 'S/C'}</p>
@@ -430,7 +430,7 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
                             borderRadius:'var(--radius-sm)', border:'1px solid var(--gray-100)',
                           }}>
                             {prod?.image_url && (
-                              <img src={prod.image_url} alt="" crossOrigin="anonymous" style={{ width:32, height:32, objectFit:'contain', borderRadius:4 }}/>
+                              <img src={prod.image_url} alt="" crossOrigin="anonymous" loading="lazy" style={{ width:32, height:32, objectFit:'contain', borderRadius:4 }}/>
                             )}
                             <div style={{ flex:1 }}>
                               <p style={{ fontSize:13, fontWeight:700 }}>{prod?.name || 'Producto eliminado'}</p>

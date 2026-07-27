@@ -161,7 +161,7 @@ export default function VentasPage({ products, sales, loading }) {
                             borderRadius: 'var(--radius-sm)', border: '1px solid var(--gray-100)',
                           }}>
                             {prod?.image_url && (
-                              <img src={prod.image_url} alt="" crossOrigin="anonymous"
+                              <img src={prod.image_url} alt="" crossOrigin="anonymous" loading="lazy"
                                 style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4 }} />
                             )}
                             <div style={{ flex: 1 }}>

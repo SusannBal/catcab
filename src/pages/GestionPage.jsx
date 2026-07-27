@@ -98,7 +98,7 @@ export default function GestionPage({ products, sales = [], saveProduct, deleteP
                   display:'flex', alignItems:'center', justifyContent:'center',
                 }}>
                   {p.image_url
-                    ? <img src={p.image_url} alt={p.name} style={{ width:'100%', height:'100%', objectFit:'contain' }}/>
+                    ? <img src={p.image_url} alt={p.name} loading="lazy" style={{ width:'100%', height:'100%', objectFit:'contain' }}/>
                     : <span style={{ fontSize:9, color:'var(--gray-300)' }}>Sin imagen</span>
                   }
                 </div>

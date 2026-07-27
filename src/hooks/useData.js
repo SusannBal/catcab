@@ -14,9 +14,9 @@ export function useData() {
       { data: salesData },
       { data: entradasData }
     ] = await Promise.all([
-      supabase.from('productos').select('*').order('created_at', { ascending: false }),
-      supabase.from('ventas').select('*').order('sold_at', { ascending: false }),
-      supabase.from('entradas').select('*').order('entered_at', { ascending: false })
+      supabase.from('productos').select('id,name,model,category,specs,price,buy_price,initial_stock,installments,code,image_url,created_at').order('created_at', { ascending: false }),
+      supabase.from('ventas').select('id,product_id,sold_at,seller,price_at_sale,buy_price_at_sale').order('sold_at', { ascending: false }),
+      supabase.from('entradas').select('id,product_id,cantidad,buy_price,entered_at').order('entered_at', { ascending: false })
     ])
     setProducts(prods || [])
     setSales(salesData || [])
@@ -70,7 +70,7 @@ export function useData() {
     const filename = `${Date.now()}.${ext}`
     const { error } = await supabase.storage.from('productos').upload(filename, file, {
       upsert: true,
-      cacheControl: '360000', // ~4 días de caché en el navegador
+      cacheControl: '31536000', // 1 año de caché — seguro porque el filename incluye Date.now()
     })
     if (error) throw error
     const { data } = supabase.storage.from('productos').getPublicUrl(filename)
