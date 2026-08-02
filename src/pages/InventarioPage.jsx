@@ -204,6 +204,7 @@ Martes de 10am a 1:30pm
 
 Adjunto evidencia
 
+Si no lo tienes no importa, solo lo aclaro por si acaso se podría y si no todo bien
 No es con mala intención, saludos y buen día 🙂`}</div>
             <img src={mensajeImg} alt="Evidencia Xiaomi" className="msg-img" />
           </div>
