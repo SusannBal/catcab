@@ -199,6 +199,7 @@ No es necesario hablar, ellos pagan todo y igual me hablarán
 @Joriev Delivery: Hola! pide nuestro servicio al 60252414
 
 En estos horarios estaré en casa
+Hoy todo el día
 Lunes en la tarde, de 2 a 4pm
 Martes de 10am a 1:30pm
 
