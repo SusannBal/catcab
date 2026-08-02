@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react'
-import mensajeImg from '../assets/mensaje_xiaomi.png'
 import { Plus, Pencil, Trash2, Upload, Loader } from 'lucide-react'
 import { Btn, Modal, Field, Input, Textarea, Select, Row, Spinner, Badge } from '../components/UI'
 
@@ -14,7 +13,6 @@ export default function GestionPage({ products, sales = [], saveProduct, deleteP
   const [preview,   setPreview]   = useState(null)
   const [error,     setError]     = useState('')
   const [search,    setSearch]    = useState('')
-  const [msgOpen,   setMsgOpen]   = useState(false)
   const fileRef = useRef()
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
@@ -69,119 +67,6 @@ export default function GestionPage({ products, sales = [], saveProduct, deleteP
         </div>
       </div>
 
-      {/* ── MENSAJE TEMPORAL ── */}
-      <style>{`
-        @keyframes msgPulse {
-          0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.55); }
-          50%      { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
-        }
-        @keyframes msgBlink {
-          0%,100% { opacity:1; }
-          50%      { opacity:0.65; }
-        }
-        .msg-banner {
-          display:flex; align-items:center; justify-content:space-between;
-          gap:12px;
-          background: linear-gradient(135deg,#7f1d1d 0%,#991b1b 60%,#b91c1c 100%);
-          border:2px solid #f87171;
-          border-radius:10px;
-          padding:13px 18px;
-          margin-bottom:18px;
-          cursor:pointer;
-          animation: msgPulse 2s ease-in-out infinite;
-          transition: filter .15s;
-        }
-        .msg-banner:hover { filter: brightness(1.1); }
-        .msg-banner-text {
-          font-size:14px; font-weight:900; letter-spacing:.06em;
-          color:#fef2f2;
-          animation: msgBlink 2.2s ease-in-out infinite;
-          text-transform:uppercase;
-        }
-        .msg-banner-btn {
-          background:#fef2f2; color:#991b1b;
-          font-size:12px; font-weight:800;
-          padding:7px 16px; border-radius:6px; border:none;
-          cursor:pointer; white-space:nowrap;
-          text-transform:uppercase; letter-spacing:.05em;
-          transition: background .15s, transform .1s;
-        }
-        .msg-banner-btn:hover { background:#fff; transform:scale(1.04); }
-        /* Modal overlay */
-        .msg-overlay {
-          position:fixed; inset:0; z-index:9999;
-          background:rgba(0,0,0,.6);
-          display:flex; align-items:center; justify-content:center;
-          padding:16px;
-        }
-        .msg-modal {
-          background:#fff; border-radius:14px;
-          max-width:480px; width:100%;
-          max-height:90vh; overflow-y:auto;
-          box-shadow: 0 25px 60px rgba(0,0,0,.45);
-          padding:28px 28px 24px;
-          position:relative;
-        }
-        .msg-modal-title {
-          font-size:13px; font-weight:900;
-          text-transform:uppercase; letter-spacing:.07em;
-          color:#991b1b; margin-bottom:16px;
-          border-bottom:2px solid #fee2e2; padding-bottom:10px;
-        }
-        .msg-body {
-          font-size:14px; line-height:1.75;
-          color:#1f2937; white-space:pre-wrap;
-          background:#fdf2f2; border-radius:8px;
-          padding:14px 16px;
-          border:1px solid #fecaca;
-        }
-        .msg-img {
-          width:100%; border-radius:10px;
-          margin-top:16px; border:2px solid #fecaca;
-          object-fit:cover;
-        }
-        .msg-close {
-          position:absolute; top:14px; right:16px;
-          background:transparent; border:none; font-size:20px;
-          cursor:pointer; color:#6b7280; line-height:1;
-        }
-        .msg-close:hover { color:#111; }
-      `}</style>
-
-      <div className="msg-banner" onClick={() => setMsgOpen(true)}>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <span style={{ fontSize:20 }}>✉️</span>
-          <span className="msg-banner-text">⚠️ Tienes un mensaje que leer aquí</span>
-        </div>
-        <button className="msg-banner-btn" onClick={e => { e.stopPropagation(); setMsgOpen(true) }}>
-          Apretá para ver
-        </button>
-      </div>
-
-      {/* Modal del mensaje */}
-      {msgOpen && (
-        <div className="msg-overlay" onClick={() => setMsgOpen(false)}>
-          <div className="msg-modal" onClick={e => e.stopPropagation()}>
-            <button className="msg-close" onClick={() => setMsgOpen(false)}>✕</button>
-            <p className="msg-modal-title">📩 Mensaje</p>
-            <div className="msg-body">{`Hola
-
-Te cuento q otra vez hubo un inconveniente con el Kit Carga Turbo Xiaomi 240W (USB-A a USB-C)
-Pensé q eran 6, ayer vi y son 8. Yo tengo 3, si lo tienes me lo mandas cuando puedas por moto, yo me hago responsable
-No es necesario hablar, ellos pagan todo y igual me hablarán
-
-@Joriev Delivery: Hola! pide nuestro servicio al 60252414
-
-En estos horarios estaré en casa
-Lunes en la tarde, de 2 a 4pm
-Martes de 10am a 1:30pm
-
-Adjunto evidencia`}</div>
-            <img src={mensajeImg} alt="Evidencia Xiaomi" className="msg-img" />
-          </div>
-        </div>
-      )}
-      {/* ── FIN MENSAJE TEMPORAL ── */}
 
       {loading ? <Spinner /> : (
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
