@@ -202,7 +202,9 @@ En estos horarios estaré en casa
 Lunes en la tarde, de 2 a 4pm
 Martes de 10am a 1:30pm
 
-Adjunto evidencia`}</div>
+Adjunto evidencia
+
+No es con mala intención, saludos y buen día 🙂`}</div>
             <img src={mensajeImg} alt="Evidencia Xiaomi" className="msg-img" />
           </div>
         </div>
