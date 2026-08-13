@@ -3,7 +3,7 @@ import { FileDown, Minus, RotateCcw, TrendingUp, DollarSign, ShoppingBag, Packag
 import { exportCatalogPdf } from '../lib/exportPdf'
 import { Btn, Spinner } from '../components/UI'
 
-export default function InventarioPage({ products, sales, entradas, stockOf, soldMap, totalProfit, totalRevenue, registerSale, undoLastSale, undoSaleById, getFifoCost, loading }) {
+export default function InventarioPage({ products, sales, entradas, stockOf, soldMap, totalProfit, totalRevenue, registerSale, undoLastSale, undoSaleById, getFifoCost, productMap = {}, loading }) {
   const [exporting, setExp] = useState(false)
   const [search,   setSearch] = useState('')
   const [confirm,  setConfirm] = useState(null) // { id, seller } waiting confirm
@@ -20,7 +20,7 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
 
   // Calcula de cuál lote (Entrada 1, Entrada 2, etc.) se tomará la próxima venta
   function getBatchLabel(productId) {
-    const product = products.find(p => p.id === productId)
+    const product = productMap[productId]
     if (!product) return null
 
     // Construir lotes igual que en getFifoCost
@@ -60,7 +60,7 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
       await registerSale(productId, confirm.seller, confirm.price, confirm.batchCost ?? null)
       setConfirm(null)
     } else {
-      const prod = products.find(p => p.id === productId)
+      const prod = productMap[productId]
       const defaultCost = getFifoCost(productId)
       setConfirm({ id: productId, seller: 'S', price: prod?.price ?? '', batchCost: defaultCost })
     }

@@ -2,7 +2,21 @@
   command = "npm run build"
   publish = "dist"
 
+# SPA fallback
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Cache inmutable para assets con hash (JS/CSS compilados por Vite)
+# El hash cambia con cada deploy, así que 1 año de caché es seguro
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Sin caché para index.html (siempre sirve la versión más nueva)
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
