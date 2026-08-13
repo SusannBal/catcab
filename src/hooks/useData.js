@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
 export function useData() {
@@ -237,27 +237,30 @@ export function useData() {
     await undoSaleById(last.id)
   }
 
-  // ── Datos derivados (calculados localmente, sin llamadas extra) ─
-  const soldMap = sales.reduce((acc, s) => {
+  // ── Datos derivados (memoizados — solo recalculan si el array cambia) ──
+  const soldMap = useMemo(() => sales.reduce((acc, s) => {
     acc[s.product_id] = (acc[s.product_id] || 0) + 1
     return acc
-  }, {})
+  }, {}), [sales])
 
-  const enteredMap = entradas.reduce((acc, e) => {
+  const enteredMap = useMemo(() => entradas.reduce((acc, e) => {
     acc[e.product_id] = (acc[e.product_id] || 0) + (Number(e.cantidad) || 0)
     return acc
-  }, {})
+  }, {}), [entradas])
+
+  // productMap: O(1) lookup por id (evita .find() repetido en las páginas)
+  const productMap = useMemo(() => Object.fromEntries(products.map(p => [p.id, p])), [products])
 
   function stockOf(product) {
     if (!product) return 0
     return (Number(product.initial_stock) || 0) + (enteredMap[product.id] || 0) - (soldMap[product.id] || 0)
   }
 
-  const totalProfit = sales.reduce((acc, s) => {
+  const totalProfit = useMemo(() => sales.reduce((acc, s) => {
     return acc + ((s.price_at_sale ?? 0) - (s.buy_price_at_sale ?? 0))
-  }, 0)
+  }, 0), [sales])
 
-  const totalRevenue = sales.reduce((acc, s) => acc + (s.price_at_sale ?? 0), 0)
+  const totalRevenue = useMemo(() => sales.reduce((acc, s) => acc + (s.price_at_sale ?? 0), 0), [sales])
 
   return {
     products, sales, entradas, loading,
@@ -265,6 +268,7 @@ export function useData() {
     registerEntrada, deleteEntrada, updateEntrada,
     registerSale, undoLastSale, undoSaleById, getFifoCost,
     soldMap, enteredMap, stockOf, totalProfit, totalRevenue,
-    refresh: fetchAll,  // disponible si se necesita un refresh manual
+    productMap,          // Map id→producto para lookups O(1)
+    refresh: fetchAll,   // disponible si se necesita un refresh manual
   }
 }

@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+
 // ─── Shared tiny UI primitives ───────────────────────────────
 
 export function Label({ children }) {
@@ -79,6 +81,13 @@ export function Btn({ variant = 'primary', style, children, ...props }) {
 }
 
 export function Modal({ onClose, title, children, footer, width = 520 }) {
+  // Cerrar con Escape
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [onClose])
+
   return (
     <div
       onClick={(e) => e.target === e.currentTarget && onClose()}

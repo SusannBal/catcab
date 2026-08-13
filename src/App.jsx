@@ -72,7 +72,7 @@ export default function App() {
         {tab === 'gestion'    && <GestionPage    {...data} />}
         {tab === 'entradas'   && <EntradasPage   {...data} />}
         {tab === 'inventario' && <InventarioPage  {...data} />}
-        {tab === 'ventas'     && <VentasPage products={data.products} sales={data.sales} loading={data.loading} />}
+        {tab === 'ventas'     && <VentasPage productMap={data.productMap} sales={data.sales} loading={data.loading} />}
       </div>
     </div>
   )

@@ -4,26 +4,23 @@ import { TrendingUp, DollarSign, ShoppingBag, User } from 'lucide-react'
 const SELLER_LABELS = { S: 'S', F: 'F', N: 'N' }
 const SELLER_COLORS = { S: '#f0c040', F: '#60c8f0', N: '#a0a0b0' }
 
-export default function VentasPage({ products, sales, loading }) {
+export default function VentasPage({ productMap = {}, sales, loading }) {
   const [filter, setFilter] = useState('all')
 
   // Sales filtered by seller
   const filteredSales = filter === 'all' ? sales : sales.filter(s => s.seller === filter)
 
-  // Stats per seller — uses price_at_sale when available
+  // Stats por vendedor — usa productMap O(1) en vez de .find() O(n) por cada venta
   function sellerStats(sellerKey) {
     const sellerSales = sellerKey === 'all' ? sales : sales.filter(s => s.seller === sellerKey)
     const units = sellerSales.length
     const revenue = sellerSales.reduce((acc, s) => {
-      const prod = products.find(p => p.id === s.product_id)
-      const salePrice = s.price_at_sale ?? prod?.price ?? 0
+      const salePrice = s.price_at_sale ?? (productMap[s.product_id]?.price ?? 0)
       return acc + salePrice
     }, 0)
     const profit = sellerSales.reduce((acc, s) => {
-      const prod = products.find(p => p.id === s.product_id)
-      const salePrice = s.price_at_sale ?? prod?.price ?? 0
-      // Usa buy_price_at_sale si está guardado, si no cae al buy_price del producto
-      const buyCost = s.buy_price_at_sale ?? prod?.buy_price ?? 0
+      const salePrice = s.price_at_sale ?? (productMap[s.product_id]?.price ?? 0)
+      const buyCost   = s.buy_price_at_sale ?? (productMap[s.product_id]?.buy_price ?? 0)
       return acc + (salePrice - buyCost)
     }, 0)
     return { units, revenue, profit }
@@ -122,15 +119,12 @@ export default function VentasPage({ products, sales, loading }) {
             <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
               {Object.entries(salesByDate).map(([date, daySales]) => {
                 const dayRevenue = daySales.reduce((acc, s) => {
-                  const prod = products.find(p => p.id === s.product_id)
-                  const salePrice = s.price_at_sale ?? prod?.price ?? 0
+                  const salePrice = s.price_at_sale ?? (productMap[s.product_id]?.price ?? 0)
                   return acc + salePrice
                 }, 0)
                 const dayProfit = daySales.reduce((acc, s) => {
-                  const prod = products.find(p => p.id === s.product_id)
-                  const salePrice = s.price_at_sale ?? prod?.price ?? 0
-                  // Usa el costo histórico guardado en la venta
-                  const buyCost = s.buy_price_at_sale ?? prod?.buy_price ?? 0
+                  const salePrice = s.price_at_sale ?? (productMap[s.product_id]?.price ?? 0)
+                  const buyCost   = s.buy_price_at_sale ?? (productMap[s.product_id]?.buy_price ?? 0)
                   return acc + (salePrice - buyCost)
                 }, 0)
 
@@ -151,7 +145,7 @@ export default function VentasPage({ products, sales, loading }) {
                     {/* Day sales */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingLeft: 8 }}>
                       {daySales.map(s => {
-                        const prod = products.find(p => p.id === s.product_id)
+                        const prod = productMap[s.product_id]
                         const time = new Date(s.sold_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
                         const sellerColor = SELLER_COLORS[s.seller] || SELLER_COLORS.N
                         return (
