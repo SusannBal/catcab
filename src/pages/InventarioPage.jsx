@@ -3,7 +3,7 @@ import { FileDown, Minus, RotateCcw, TrendingUp, DollarSign, ShoppingBag, Packag
 import { exportCatalogPdf } from '../lib/exportPdf'
 import { Btn, Spinner } from '../components/UI'
 
-export default function InventarioPage({ products, sales, entradas, stockOf, soldMap, totalProfit, totalRevenue, registerSale, undoLastSale, getFifoCost, loading }) {
+export default function InventarioPage({ products, sales, entradas, stockOf, soldMap, totalProfit, totalRevenue, registerSale, undoLastSale, undoSaleById, getFifoCost, loading }) {
   const [exporting, setExp] = useState(false)
   const [search,   setSearch] = useState('')
   const [confirm,  setConfirm] = useState(null) // { id, seller } waiting confirm
@@ -464,7 +464,11 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
                                 )
                               })()}
                             </div>
-                            <Btn variant="ghost" onClick={() => undoLastSale(s.product_id)}
+                            <Btn variant="ghost"
+                              onClick={async () => {
+                                if (!window.confirm('¿Deshacer esta venta?')) return
+                                await (undoSaleById ? undoSaleById(s.id) : undoLastSale(s.product_id))
+                              }}
                               style={{ padding:'4px 8px', fontSize:11 }}
                               title="Deshacer esta venta">
                               <RotateCcw size={11}/>
