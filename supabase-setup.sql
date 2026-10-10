@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS productos (
   installments  TEXT,
   code          TEXT,
   image_url     TEXT,
+  archived      BOOLEAN NOT NULL DEFAULT false,
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -35,6 +36,7 @@ CREATE TABLE IF NOT EXISTS entradas (
   product_id    UUID REFERENCES productos(id) ON DELETE CASCADE,
   cantidad      INTEGER NOT NULL,
   buy_price     NUMERIC(10,2) NOT NULL, -- El costo de compra para este lote
+  proveedor     TEXT,
   entered_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -73,3 +75,43 @@ CREATE POLICY "storage_delete" ON storage.objects FOR DELETE USING (bucket_id IN
 -- ============================================
 -- LISTO
 -- ============================================
+
+-- 6. TABLA DE PROVEEDORES
+CREATE TABLE IF NOT EXISTS proveedores (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  nombre      TEXT NOT NULL UNIQUE,
+  telefono    TEXT,
+  notas       TEXT,
+  tipo           TEXT,
+  contacto       TEXT,
+  direccion      TEXT,
+  ciudad         TEXT,
+  maps_url       TEXT,
+  horario        TEXT,
+  web            TEXT,
+  metodos_pago   TEXT,
+  tiempo_entrega TEXT,
+  compra_minima  TEXT,
+  hace_envios    BOOLEAN DEFAULT false,
+  calificacion   SMALLINT,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE proveedores ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "proveedores_public" ON proveedores;
+CREATE POLICY "proveedores_public" ON proveedores FOR ALL USING (true) WITH CHECK (true);
+
+-- 7. TABLA DE REPORTES (Contáctanos: quejas, errores, sugerencias)
+CREATE TABLE IF NOT EXISTS reportes (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  tipo        TEXT NOT NULL,
+  seccion     TEXT,
+  asunto      TEXT NOT NULL,
+  mensaje     TEXT NOT NULL,
+  nombre      TEXT,
+  contacto    TEXT,
+  estado      TEXT NOT NULL DEFAULT 'pendiente',
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE reportes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "reportes_public" ON reportes;
+CREATE POLICY "reportes_public" ON reportes FOR ALL USING (true) WITH CHECK (true);

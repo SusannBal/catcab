@@ -1,11 +1,11 @@
 import { useState, useRef } from 'react'
-import { Plus, Pencil, Trash2, Upload, Loader } from 'lucide-react'
+import { Plus, Pencil, Trash2, Upload, Loader, Archive, ArchiveRestore } from 'lucide-react'
 import { Btn, Modal, Field, Input, Textarea, Select, Row, Spinner, Badge } from '../components/UI'
 
 const CATS = ['Cables', 'Audífonos', 'Audio']
 const EMPTY = { name:'', model:'', category:'Cables', specs:'', price:'', buy_price:'', initial_stock:'', installments:'', code:'', image_url:'' }
 
-export default function GestionPage({ products, sales = [], saveProduct, deleteProduct, uploadImage, soldMap, stockOf, loading }) {
+export default function GestionPage({ products, sales = [], saveProduct, deleteProduct, uploadImage, setArchived, isArchived, soldMap, stockOf, loading }) {
   const [open,      setOpen]      = useState(false)
   const [form,      setForm]      = useState(EMPTY)
   const [saving,    setSaving]    = useState(false)
@@ -13,6 +13,8 @@ export default function GestionPage({ products, sales = [], saveProduct, deleteP
   const [preview,   setPreview]   = useState(null)
   const [error,     setError]     = useState('')
   const [search,    setSearch]    = useState('')
+  const [view,      setView]      = useState('activos') // 'activos' | 'archivados'
+  const [busyId,    setBusyId]    = useState(null)
   const fileRef = useRef()
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
@@ -50,7 +52,18 @@ export default function GestionPage({ products, sales = [], saveProduct, deleteP
     await deleteProduct(p.id)
   }
 
+  async function handleArchive(p) {
+    setBusyId(p.id)
+    try { await setArchived(p.id, !p.archived) }
+    catch (err) { window.alert('No se pudo actualizar: ' + err.message) }
+    finally { setBusyId(null) }
+  }
+
+  const archivedCount = products.filter(isArchived).length
+  const activeCount   = products.length - archivedCount
+
   const visible = products.filter(p => {
+    if ((view === 'archivados') !== isArchived(p)) return false
     const q = search.toLowerCase()
     return !q || p.name?.toLowerCase().includes(q) || p.category?.toLowerCase().includes(q)
   })
@@ -67,17 +80,40 @@ export default function GestionPage({ products, sales = [], saveProduct, deleteP
         </div>
       </div>
 
+      {/* Activos / Archivados */}
+      <div style={{ display:'flex', gap:6, marginBottom:16 }}>
+        {[
+          { id:'activos',    label:`Activos (${activeCount})` },
+          { id:'archivados', label:`Archivados (${archivedCount})` },
+        ].map(t => (
+          <button key={t.id} onClick={() => setView(t.id)} style={{
+            padding:'7px 14px', borderRadius:'var(--radius-sm)', fontSize:12, fontWeight:800, cursor:'pointer',
+            border: view === t.id ? '1.5px solid var(--black)' : '1.5px solid var(--gray-200)',
+            background: view === t.id ? 'var(--black)' : 'var(--surface)',
+            color: view === t.id ? 'var(--accent)' : 'var(--gray-600)',
+          }}>{t.label}</button>
+        ))}
+      </div>
+      {view === 'archivados' && (
+        <p style={{ fontSize:12, color:'var(--gray-600)', marginBottom:14 }}>
+          Los archivados no aparecen en Catálogo ni en Inventario. Los agotados se archivan solos
+          y vuelven a activos cuando registras una entrada nueva.
+        </p>
+      )}
 
       {loading ? <Spinner /> : (
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
           {visible.length === 0 && (
             <div style={{ textAlign:'center', padding:'60px 0', color:'var(--gray-400)', fontSize:13 }}>
-              No hay productos. Usa "+ Nuevo producto" para agregar.
+              {view === 'archivados'
+                ? 'No hay productos archivados.'
+                : 'No hay productos. Usa "+ Nuevo producto" para agregar.'}
             </div>
           )}
           {visible.map(p => {
             const sold  = soldMap[p.id] || 0
             const stock = stockOf ? stockOf(p) : ((p.initial_stock || 0) - sold)
+            const archived = isArchived(p)
             const productSales = sales.filter(s => s.product_id === p.id)
             const profit = p.buy_price != null ? productSales.reduce((acc, s) => {
               const salePrice = s.price_at_sale ?? p.price ?? 0
@@ -86,10 +122,10 @@ export default function GestionPage({ products, sales = [], saveProduct, deleteP
 
             return (
               <div key={p.id} style={{
-                background:'var(--white)', border:'1.5px solid var(--gray-100)',
+                background:'var(--surface)', border:'1.5px solid var(--gray-100)',
                 borderRadius:'var(--radius-md)', padding:'14px 18px',
-                display:'flex', gap:16, alignItems:'center',
-                boxShadow:'var(--shadow)',
+                display:'flex', gap:16, alignItems:'center', flexWrap:'wrap',
+                boxShadow:'var(--shadow)', opacity: archived ? 0.8 : 1,
               }}>
                 {/* Thumbnail */}
                 <div style={{
@@ -105,11 +141,12 @@ export default function GestionPage({ products, sales = [], saveProduct, deleteP
                 </div>
 
                 {/* Info */}
-                <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ flex:'1 1 220px', minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:4 }}>
                     <p style={{ fontWeight:800, fontSize:14 }}>{p.name}</p>
                     <Badge>{p.category}</Badge>
                     {stock <= 0 && <Badge color="var(--danger)">AGOTADO</Badge>}
+                    {archived && <Badge color="var(--gray-400)">ARCHIVADO</Badge>}
                   </div>
                   {p.model && <p style={{ fontSize:11, color:'var(--gray-600)' }}>{p.model}</p>}
 
@@ -125,7 +162,17 @@ export default function GestionPage({ products, sales = [], saveProduct, deleteP
                 </div>
 
                 {/* Actions */}
-                <div style={{ display:'flex', gap:8, flexShrink:0 }}>
+                <div style={{ display:'flex', gap:8, flexShrink:0, alignItems:'center', flexWrap:'wrap' }}>
+                  {stock <= 0 ? (
+                    <span style={{ fontSize:11, color:'var(--gray-600)', maxWidth:150 }}>
+                      Agotado. Vuelve a activos al registrar una entrada.
+                    </span>
+                  ) : (
+                    <Btn variant="ghost" onClick={() => handleArchive(p)} disabled={busyId === p.id}
+                      title={p.archived ? 'Desarchivar' : 'Archivar'} style={{ padding:'7px 12px' }}>
+                      {p.archived ? <><ArchiveRestore size={13}/> Desarchivar</> : <><Archive size={13}/> Archivar</>}
+                    </Btn>
+                  )}
                   <Btn variant="ghost" onClick={() => openEdit(p)} style={{ padding:'7px 12px' }}>
                     <Pencil size={13}/> Editar
                   </Btn>
@@ -229,7 +276,7 @@ export default function GestionPage({ products, sales = [], saveProduct, deleteP
             </div>
 
             {error && (
-              <p style={{ fontSize:12, color:'var(--danger)', background:'#fff0f0', padding:'8px 12px', borderRadius:6 }}>
+              <p style={{ fontSize:12, color:'var(--danger)', background:'var(--tint-danger)', padding:'8px 12px', borderRadius:6 }}>
                 {error}
               </p>
             )}
@@ -244,7 +291,7 @@ function Stat({ label, value, highlight, color }) {
   return (
     <div>
       <p style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--gray-400)', marginBottom:2 }}>{label}</p>
-      <p style={{ fontSize:13, fontWeight:800, color: color || (highlight ? 'var(--black)' : 'var(--gray-800)') }}>
+      <p style={{ fontSize:13, fontWeight:800, color: color || (highlight ? 'var(--text)' : 'var(--gray-800)') }}>
         {value}
       </p>
     </div>

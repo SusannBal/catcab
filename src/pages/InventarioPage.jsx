@@ -1,58 +1,25 @@
 import { useState } from 'react'
-import { FileDown, Minus, RotateCcw, TrendingUp, DollarSign, ShoppingBag, Package, Pencil } from 'lucide-react'
+import { FileDown, Minus, RotateCcw, TrendingUp, DollarSign, ShoppingBag, Package, Pencil, X, Search, ChevronDown, ChevronUp } from 'lucide-react'
 import { exportCatalogPdf } from '../lib/exportPdf'
+import { availableByCost } from '../lib/lots'
 import { Btn, Spinner } from '../components/UI'
 
-export default function InventarioPage({ products, sales, entradas, stockOf, soldMap, totalProfit, totalRevenue, registerSale, undoLastSale, undoSaleById, getFifoCost, productMap = {}, loading }) {
+export default function InventarioPage({ products, sales, entradas, stockOf, isArchived, soldMap, totalProfit, totalRevenue, registerSale, undoLastSale, undoSaleById, getFifoCost, getLots, productMap = {}, loading }) {
   const [exporting, setExp] = useState(false)
   const [search,   setSearch] = useState('')
   const [confirm,  setConfirm] = useState(null) // { id, seller } waiting confirm
+  const [category, setCategory] = useState('Todas')
+  const [sortBy,   setSortBy]   = useState('vendidos') // 'vendidos' | 'nombre' | 'stock'
+  const [showHistory, setShowHistory] = useState(false)
 
   async function handleExport() {
     setExp(true)
     try {
-      await exportCatalogPdf(products, 'inventario.pdf')
+      await exportCatalogPdf(activeProducts, 'inventario.pdf')
     } catch (err) {
       console.error('Error exportando PDF:', err)
     }
     setExp(false)
-  }
-
-  // Calcula de cuál lote (Entrada 1, Entrada 2, etc.) se tomará la próxima venta
-  function getBatchLabel(productId) {
-    const product = productMap[productId]
-    if (!product) return null
-
-    // Construir lotes igual que en getFifoCost
-    const batches = []
-    if ((Number(product.initial_stock) || 0) > 0) {
-      batches.push({ label: 'Stock inicial', cost: Number(product.buy_price) || 0 })
-    }
-    const prodEntradas = (entradas || [])
-      .filter(e => e.product_id === productId)
-      .sort((a, b) => new Date(a.entered_at) - new Date(b.entered_at))
-    prodEntradas.forEach((e, i) => {
-      batches.push({ label: `Entrada ${i + 1}`, cost: Number(e.buy_price) || 0, cantidad: Number(e.cantidad) })
-    })
-
-    if (batches.length === 0) return null
-
-    // Cuántas ventas ya se hicieron
-    const totalSold = (sales || []).filter(s => s.product_id === productId).length
-    // Consumir lotes igual que en getFifoCost para encontrar el lote actual
-    let batchIdx = 0
-    let remaining = Number(product.initial_stock) || 0
-    for (let i = 0; i < totalSold; i++) {
-      if (remaining > 0) remaining--
-      while (remaining === 0 && batchIdx < batches.length - 1) {
-        batchIdx++
-        const e = prodEntradas[batchIdx - 1] // entradas start at index 1 in batches
-        remaining = batchIdx < batches.length ? (e?.cantidad ?? 0) : 0
-        if (remaining > 0) break
-      }
-    }
-
-    return batches[batchIdx] ?? null
   }
 
   async function handleSale(productId) {
@@ -74,10 +41,23 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
     return acc
   }, {})
 
-  const visible = products.filter(p => {
-    const q = search.toLowerCase()
-    return !q || p.name?.toLowerCase().includes(q)
-  })
+  // Solo productos disponibles: los agotados y los archivados a mano no aparecen
+  const activeProducts = products.filter(p => !isArchived(p))
+  const hiddenCount    = products.length - activeProducts.length
+  const categories     = ['Todas', ...new Set(activeProducts.map(p => p.category).filter(Boolean))]
+
+  const SORTERS = {
+    vendidos: (a, b) => (soldMap[b.id] || 0) - (soldMap[a.id] || 0) || a.name.localeCompare(b.name),
+    nombre:   (a, b) => a.name.localeCompare(b.name),
+    stock:    (a, b) => stockOf(a) - stockOf(b) || a.name.localeCompare(b.name),
+  }
+  const visible = activeProducts
+    .filter(p => {
+      const q = search.toLowerCase()
+      return (category === 'Todas' || p.category === category)
+        && (!q || p.name?.toLowerCase().includes(q) || p.code?.toLowerCase().includes(q))
+    })
+    .sort(SORTERS[sortBy])
 
   // Total units sold
   const totalUnits = Object.values(soldMap).reduce((a, b) => a + b, 0)
@@ -86,32 +66,59 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
     <div>
       {/* Stats cards */}
       <div style={{
-        background: 'var(--black)', padding: '20px var(--page-pad)',
+        background: 'var(--band)', padding: '20px var(--page-pad)',
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12,
       }}>
         <StatCard icon={<TrendingUp size={18}/>} label="Ganancia total" value={`Bs. ${totalProfit.toFixed(2)}`} accent />
         <StatCard icon={<DollarSign size={18}/>} label="Ingresos totales" value={`Bs. ${totalRevenue.toFixed(2)}`} />
         <StatCard icon={<ShoppingBag size={18}/>} label="Unidades vendidas" value={totalUnits} />
-        <StatCard icon={<Package size={18}/>}     label="Productos activos" value={products.length} />
+        <StatCard icon={<Package size={18}/>}     label="Productos activos" value={activeProducts.length} />
       </div>
 
 
       {/* Controls */}
       <div style={{
-        background: 'var(--white)', borderBottom: '1px solid var(--gray-100)',
-        padding: '12px 24px', display: 'flex', gap: 12, alignItems: 'center',
+        background: 'var(--surface)', borderBottom: '1px solid var(--gray-100)',
+        padding: '12px var(--page-pad)', display: 'flex', flexDirection: 'column', gap: 10,
+        position: 'sticky', top: 'var(--topbar-h)', zIndex: 50,
       }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar producto..."
-          style={{ padding:'8px 12px', border:'1.5px solid var(--gray-200)', borderRadius:'var(--radius-sm)', fontSize:13, outline:'none', width:220 }}/>
-        <Btn variant="dark" style={{ marginLeft:'auto' }} onClick={handleExport} disabled={exporting}>
-          <FileDown size={14}/> {exporting ? 'Exportando...' : 'Guardar PDF'}
-        </Btn>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: '1 1 200px' }}>
+            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)' }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nombre o código..."
+              style={{ width:'100%', padding:'8px 12px 8px 30px', border:'1.5px solid var(--gray-200)', borderRadius:'var(--radius-sm)', fontSize:13, outline:'none' }}/>
+          </div>
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+            style={{ padding:'8px 10px', border:'1.5px solid var(--gray-200)', borderRadius:'var(--radius-sm)', fontSize:12, fontWeight:700, background:'var(--surface)' }}>
+            <option value="vendidos">Más vendidos primero</option>
+            <option value="nombre">Nombre (A-Z)</option>
+            <option value="stock">Menos stock primero</option>
+          </select>
+          <Btn variant="dark" onClick={handleExport} disabled={exporting}>
+            <FileDown size={14}/> {exporting ? 'Exportando...' : 'Guardar PDF'}
+          </Btn>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          {categories.map(c => (
+            <button key={c} onClick={() => setCategory(c)} style={{
+              padding:'5px 12px', borderRadius:99, fontSize:12, fontWeight:700, cursor:'pointer',
+              border: category === c ? '1.5px solid var(--black)' : '1.5px solid var(--gray-200)',
+              background: category === c ? 'var(--black)' : 'var(--surface)',
+              color: category === c ? 'var(--accent)' : 'var(--gray-600)',
+            }}>{c}</button>
+          ))}
+          {hiddenCount > 0 && (
+            <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--gray-400)' }}>
+              {hiddenCount} agotado{hiddenCount > 1 ? 's' : ''} o archivado{hiddenCount > 1 ? 's' : ''} oculto{hiddenCount > 1 ? 's' : ''} (ver en Gestión)
+            </span>
+          )}
+        </div>
       </div>
 
-      <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ padding: '20px var(--page-pad)', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
         {/* ── Inventory table ── */}
-        <div id="inv-print" style={{ background:'var(--white)', borderRadius:'var(--radius-md)', overflow:'hidden', boxShadow:'var(--shadow)' }}>
+        <div id="inv-print" style={{ background:'var(--surface)', borderRadius:'var(--radius-md)', overflow:'hidden', boxShadow:'var(--shadow)' }}>
           {/* Table header */}
           <div style={{
             background:'var(--black)', color:'var(--white)',
@@ -128,14 +135,19 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
               <table style={{ width:'100%', borderCollapse:'collapse' }}>
                 <thead>
                   <tr style={{ background:'var(--gray-50)', borderBottom:'1.5px solid var(--gray-200)' }}>
-                    {['Producto','Precio venta','Precio compra','Ganancia u.','Ini.','Vendidos','Restantes','Registrar venta'].map(h => (
-                      <th key={h} style={{ padding:'10px 16px', textAlign:'left', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--gray-600)', whiteSpace:'nowrap' }}>
+                    {[['Producto'],['Vender'],['Quedan'],['Precio venta'],['Precio compra','hide-mobile'],['Ganancia u.','hide-mobile'],['Ini.','hide-mobile'],['Vendidos','hide-mobile']].map(([h, cls]) => (
+                      <th key={h} className={cls} style={{ padding:'10px 16px', textAlign:'left', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--gray-600)', whiteSpace:'nowrap' }}>
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
+                  {visible.length === 0 && (
+                    <tr><td colSpan={8} style={{ padding:'40px 16px', textAlign:'center', fontSize:13, color:'var(--gray-400)' }}>
+                      No hay productos disponibles con este filtro.
+                    </td></tr>
+                  )}
                   {visible.map((p, i) => {
                     const sold   = soldMap[p.id] || 0
                     const stock  = stockOf(p)
@@ -144,7 +156,7 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
                     return (
                       <tr key={p.id} style={{
                         borderBottom: '1px solid var(--gray-100)',
-                        background: i % 2 === 0 ? 'var(--white)' : 'var(--gray-50)',
+                        background: i % 2 === 0 ? 'var(--surface)' : 'var(--gray-50)',
                       }}>
                         {/* Product */}
                         <td style={{ padding:'12px 16px' }}>
@@ -160,11 +172,23 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
                           </div>
                         </td>
 
-                        <td style={td}><span style={{ fontWeight:700 }}>Bs. {p.price}</span></td>
-                        <td style={td}>{p.buy_price != null ? `Bs. ${p.buy_price}` : <span style={{ color:'var(--gray-300)' }}>—</span>}</td>
+                        {/* Register sale button */}
+                        <td style={{ padding:'12px 16px' }}>
+                          <Btn variant="success" onClick={() => handleSale(p.id)} style={{ padding:'7px 14px', fontSize:12, whiteSpace:'nowrap' }}>
+                            <Minus size={12}/> Vendí 1
+                          </Btn>
+                        </td>
+
+                        {/* Remaining */}
+                        <td style={td}>
+                          <span style={{ fontWeight:800, color: stock <= 2 ? 'orange' : 'var(--success)' }}>{stock}</span>
+                        </td>
+
+                        <td style={td}><span style={{ fontWeight:700, whiteSpace:'nowrap' }}>Bs. {p.price}</span></td>
+                        <td style={td} className="hide-mobile">{p.buy_price != null ? `Bs. ${p.buy_price}` : <span style={{ color:'var(--gray-300)' }}>—</span>}</td>
 
                         {/* Unit profit */}
-                        <td style={td}>
+                        <td style={td} className="hide-mobile">
                           {unitProfit != null
                             ? <span style={{ fontWeight:700, color: unitProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
                                 Bs. {unitProfit.toFixed(2)}
@@ -173,29 +197,8 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
                           }
                         </td>
 
-                        <td style={td}>{p.initial_stock ?? '—'}</td>
-                        <td style={td}><span style={{ fontWeight:700 }}>{sold}</span></td>
-
-                        {/* Remaining */}
-                        <td style={td}>
-                          <span style={{
-                            fontWeight:800,
-                            color: stock <= 0 ? 'var(--danger)' : stock <= 2 ? 'orange' : 'var(--success)',
-                          }}>
-                            {stock <= 0 ? 'AGOTADO' : stock}
-                          </span>
-                        </td>
-
-                        {/* Register sale button */}
-                        <td style={{ padding:'12px 16px' }}>
-                          {stock <= 0 ? (
-                            <span style={{ fontSize:11, color:'var(--gray-400)' }}>Sin stock</span>
-                          ) : (
-                            <Btn variant="success" onClick={() => handleSale(p.id)} style={{ padding:'5px 14px', fontSize:12 }}>
-                              <Minus size={12}/> Vendí 1
-                            </Btn>
-                          )}
-                        </td>
+                        <td style={td} className="hide-mobile">{p.initial_stock ?? '—'}</td>
+                        <td style={td} className="hide-mobile"><span style={{ fontWeight:700 }}>{sold}</span></td>
                       </tr>
                     )
                   })}
@@ -204,14 +207,11 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
                 {/* Totals row */}
                 <tfoot>
                   <tr style={{ background:'var(--black)', color:'var(--white)' }}>
-                    <td style={{ padding:'12px 16px', fontWeight:800, fontSize:13 }} colSpan={3}>TOTALES</td>
-                    <td style={tdLight}></td>
-                    <td style={tdLight}></td>
-                    <td style={{ padding:'12px 16px', fontWeight:800 }}>{totalUnits} uds.</td>
-                    <td style={tdLight}></td>
-                    <td style={{ padding:'12px 16px', fontWeight:800, color:'var(--accent)' }}>
-                      Bs. {totalProfit.toFixed(2)} ganancia
+                    <td style={{ padding:'12px 16px', fontWeight:800, fontSize:13 }}>TOTALES</td>
+                    <td style={{ padding:'12px 16px', fontWeight:800, color:'var(--accent)', whiteSpace:'nowrap' }} colSpan={3}>
+                      {totalUnits} uds. vendidas · Bs. {totalProfit.toFixed(2)} ganancia
                     </td>
+                    <td style={tdLight} className="hide-mobile" colSpan={4}></td>
                   </tr>
                 </tfoot>
               </table>
@@ -233,7 +233,7 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
               zIndex: 1000, padding: 16
             }}>
               <div style={{
-                background: 'var(--white)', width: '100%', maxWidth: 380,
+                background: 'var(--surface)', width: '100%', maxWidth: 380,
                 borderRadius: 'var(--radius-md)', padding: 20,
                 boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
                 display: 'flex', flexDirection: 'column', gap: 16,
@@ -241,7 +241,7 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--gray-100)', paddingBottom: 10 }}>
                   <h3 style={{ fontSize: 16, fontWeight: 900 }}>Confirmar Venta</h3>
-                  <button onClick={() => setConfirm(null)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--gray-400)' }}>✕</button>
+                  <button onClick={() => setConfirm(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-400)', display: 'flex' }}><X size={18} /></button>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -252,75 +252,49 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
                   </div>
                 </div>
 
-                {/* Batch Picker */}
+                {/* Lote: de qué compra sale esta unidad */}
                 {(() => {
-                  const prodEntradas = (entradas || [])
-                    .filter(e => e.product_id === p.id)
-                    .sort((a, b) => new Date(a.entered_at) - new Date(b.entered_at))
-                  
-                  const rawLots = []
-                  if ((Number(p.initial_stock) || 0) > 0 && p.buy_price != null) {
-                    rawLots.push({ label: 'Stock inicial', cost: Number(p.buy_price) })
-                  }
-                  prodEntradas.forEach((e, i) => {
-                    rawLots.push({ label: `Entrada ${i + 1}`, cost: Number(e.buy_price) })
-                  })
-
-                  // Filtrar por costos únicos para no mostrar botones duplicados con el mismo precio
-                  const uniqueCostLots = []
-                  const seenCosts = new Set()
-                  for (const lot of rawLots) {
-                    if (!seenCosts.has(lot.cost)) {
-                      seenCosts.add(lot.cost)
-                      uniqueCostLots.push(lot)
-                    }
-                  }
-
-                  // Si hay más de un costo DIFERENTE, mostrar selector de lotes por precio
-                  if (uniqueCostLots.length > 1) {
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-600)' }}>¿De qué costo proviene la venta?</label>
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          {uniqueCostLots.map((lot, idx) => {
-                            const selected = confirm.batchCost === lot.cost
-                            return (
-                              <button key={idx}
-                                onClick={() => setConfirm(c => ({ ...c, batchCost: lot.cost }))}
-                                style={{
-                                  padding: '8px 12px', borderRadius: 8,
-                                  border: selected ? '2px solid var(--black)' : '1.5px solid var(--gray-300)',
-                                  cursor: 'pointer', fontSize: 11, fontWeight: 800,
-                                  background: selected ? 'var(--black)' : 'var(--gray-50)',
-                                  color: selected ? 'var(--accent)' : 'var(--gray-700)',
-                                  flex: '1 1 auto', textAlign: 'center', transition: 'all 0.15s'
-                                }}
-                              >
-                                📦 Costo: Bs. {lot.cost}<br/><span style={{ fontSize: 10, opacity: 0.75 }}>({lot.label})</span>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  }
-
-                  const batch = getBatchLabel(p.id)
-                  if (!batch) return null
-                  const isInitial = batch.label === 'Stock inicial'
+                  const lots   = getLots(p.id)
+                  const groups = availableByCost(lots)
+                  const soldOut = lots.filter(l => l.remaining <= 0).length
+                  if (groups.length === 0) return null
                   return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-600)' }}>Lote asignado:</span>
-                      <div style={{
-                        fontSize: 12, fontWeight: 800, padding: '8px 12px', borderRadius: 8,
-                        background: isInitial ? '#fff3cd' : '#d4edda',
-                        color: isInitial ? '#856404' : '#155724',
-                        border: isInitial ? '1px solid #ffc107' : '1px solid #28a745',
-                        display: 'flex', justifyContent: 'space-between'
-                      }}>
-                        <span>📦 {batch.label}</span>
-                        <span>Costo: Bs. {batch.cost}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-600)' }}>
+                        {groups.length > 1 ? '¿De qué compra sale esta unidad?' : 'Sale de la compra:'}
+                      </label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {groups.map((g, idx) => {
+                          const selected = confirm.batchCost === g.cost
+                          return (
+                            <button key={idx} type="button"
+                              onClick={() => setConfirm(c => ({ ...c, batchCost: g.cost }))}
+                              style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                                padding: '9px 12px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                                border: selected ? '2px solid var(--accent)' : '1.5px solid var(--gray-200)',
+                                background: selected ? 'var(--tint-warn)' : 'var(--gray-50)',
+                                color: 'var(--text)', transition: 'all 0.15s',
+                              }}>
+                              <span style={{ minWidth: 0 }}>
+                                <span style={{ display: 'block', fontSize: 13, fontWeight: 900 }}>
+                                  Costo Bs. {g.cost}
+                                  {idx === 0 && <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 900, background: 'var(--accent)', color: '#111', padding: '1px 6px', borderRadius: 4, verticalAlign: 'middle' }}>PRIMERO EN SALIR</span>}
+                                </span>
+                                <span style={{ display: 'block', fontSize: 10, color: 'var(--gray-500)', marginTop: 1 }}>{g.labels.join(', ')}</span>
+                              </span>
+                              <span style={{ fontSize: 12, fontWeight: 800, color: g.remaining <= 2 ? 'orange' : 'var(--success)', whiteSpace: 'nowrap' }}>
+                                quedan {g.remaining}
+                              </span>
+                            </button>
+                          )
+                        })}
                       </div>
+                      {soldOut > 0 && (
+                        <p style={{ fontSize: 10, color: 'var(--gray-500)' }}>
+                          {soldOut} compra{soldOut > 1 ? 's' : ''} anterior{soldOut > 1 ? 'es' : ''} ya vendida{soldOut > 1 ? 's' : ''} por completo (no se muestra{soldOut > 1 ? 'n' : ''}).
+                        </p>
+                      )}
                     </div>
                   )
                 })()}
@@ -376,16 +350,20 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
         })()}
 
         {/* ── Sales history ── */}
-        <div style={{ background:'var(--white)', borderRadius:'var(--radius-md)', boxShadow:'var(--shadow)', overflow:'hidden' }}>
-          <div style={{
+        <div style={{ background:'var(--surface)', borderRadius:'var(--radius-md)', boxShadow:'var(--shadow)', overflow:'hidden' }}>
+          <button onClick={() => setShowHistory(v => !v)} style={{
+            width:'100%', border:'none', cursor:'pointer', textAlign:'left',
             background:'var(--black)', color:'var(--white)',
-            padding:'14px 20px', display:'flex', justifyContent:'space-between', alignItems:'center',
+            padding:'14px 20px', display:'flex', justifyContent:'space-between', alignItems:'center', gap:12,
           }}>
             <h2 style={{ fontSize:15, fontWeight:900 }}>HISTORIAL DE VENTAS</h2>
-            <span style={{ fontSize:11, color:'rgba(255,255,255,0.5)' }}>{sales.length} registro(s)</span>
-          </div>
+            <span style={{ fontSize:11, color:'rgba(255,255,255,0.6)', display:'flex', alignItems:'center', gap:6 }}>
+              {sales.length} registro(s) · {showHistory ? 'Ocultar' : 'Mostrar'}
+              {showHistory ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
+            </span>
+          </button>
 
-          {sales.length === 0 ? (
+          {showHistory && (sales.length === 0 ? (
             <div style={{ textAlign:'center', padding:'40px 0', color:'var(--gray-400)', fontSize:13 }}>
               No hay ventas registradas aún.
             </div>
@@ -410,7 +388,7 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
                       display:'flex', alignItems:'center', gap:12, marginBottom:8,
                     }}>
                       <span style={{
-                        background:'var(--accent)', color:'var(--black)',
+                        background:'var(--accent)', color:'#111',
                         fontWeight:800, fontSize:11, padding:'3px 10px', borderRadius:4,
                       }}>{date}</span>
                       <span style={{ fontSize:12, color:'var(--gray-600)' }}>
@@ -447,7 +425,7 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
                                       Bs. {salePrice ?? '—'}
                                       {isCustom && (
                                         <span title={`Precio de catálogo actual: Bs. ${prod.price}`}
-                                          style={{ marginLeft: 4, fontSize: 9, background: '#e8f4fd', color: '#2196f3', borderRadius: 3, padding: '1px 5px', fontWeight: 700, verticalAlign: 'middle' }}>
+                                          style={{ marginLeft: 4, fontSize: 9, background: 'var(--tint-info)', color: '#2196f3', borderRadius: 3, padding: '1px 5px', fontWeight: 700, verticalAlign: 'middle' }}>
                                           esp.
                                         </span>
                                       )}
@@ -481,7 +459,7 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
                 )
               })}
             </div>
-          )}
+          ))}
         </div>
 
       </div>
@@ -489,7 +467,7 @@ export default function InventarioPage({ products, sales, entradas, stockOf, sol
   )
 }
 
-const td      = { padding:'12px 16px', fontSize:13, color:'var(--black)' }
+const td      = { padding:'12px 16px', fontSize:13, color:'var(--text)' }
 const tdLight = { padding:'12px 16px', fontSize:13, color:'rgba(255,255,255,0.4)' }
 
 function StatCard({ icon, label, value, accent }) {
@@ -499,13 +477,13 @@ function StatCard({ icon, label, value, accent }) {
       borderRadius: 'var(--radius-md)', padding: '14px 18px',
     }}>
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-        <span style={{ color: accent ? 'var(--black)' : 'rgba(255,255,255,0.5)' }}>{icon}</span>
+        <span style={{ color: accent ? '#111' : 'rgba(255,255,255,0.5)' }}>{icon}</span>
         <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em',
-          color: accent ? 'var(--black)' : 'rgba(255,255,255,0.5)' }}>
+          color: accent ? '#111' : 'rgba(255,255,255,0.5)' }}>
           {label}
         </span>
       </div>
-      <p style={{ fontSize:24, fontWeight:900, color: accent ? 'var(--black)' : 'var(--white)' }}>{value}</p>
+      <p style={{ fontSize:24, fontWeight:900, color: accent ? '#111' : 'var(--white)' }}>{value}</p>
     </div>
   )
 }

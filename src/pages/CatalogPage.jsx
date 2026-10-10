@@ -5,13 +5,11 @@ import { Btn, Spinner, Badge } from '../components/UI'
 
 const ALL = 'Todas'
 
-const priceBadge = {
-  width: 76, height: 76, borderRadius: '50%',
-  background: 'var(--accent)', border: '3px solid var(--black)',
-  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-}
+const clamp = lines => ({
+  overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: lines, WebkitBoxOrient: 'vertical',
+})
 
-export default function CatalogPage({ products, stockOf, loading }) {
+export default function CatalogPage({ products, stockOf, isArchived, loading }) {
   const [search,   setSearch]   = useState('')
   const [category, setCategory] = useState(ALL)
   const [exporting, setExp]     = useState(false)
@@ -26,6 +24,7 @@ export default function CatalogPage({ products, stockOf, loading }) {
   }
 
   const visible = products.filter(p => {
+    if (isArchived(p)) return false
     const matchCat = category === ALL || (CAT_MATCH[category] || [category]).includes(p.category)
     const q = search.toLowerCase()
     const matchQ = !q || p.name?.toLowerCase().includes(q) || p.specs?.toLowerCase().includes(q)
@@ -46,7 +45,7 @@ export default function CatalogPage({ products, stockOf, loading }) {
     <div>
       {/* Controls */}
       <div style={{
-        background: 'var(--white)', borderBottom: '1px solid var(--gray-100)',
+        background: 'var(--surface)', borderBottom: '1px solid var(--gray-100)',
         padding: '12px var(--page-pad)', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap',
       }}>
         <div style={{ position: 'relative', flex: '1 1 200px' }}>
@@ -57,7 +56,7 @@ export default function CatalogPage({ products, stockOf, loading }) {
             style={{
               width: '100%', padding: '8px 10px 8px 30px',
               border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-sm)',
-              fontSize: 13, outline: 'none',
+              fontSize: 13, outline: 'none', background: 'var(--surface)', color: 'var(--text)',
             }}
           />
         </div>
@@ -65,10 +64,10 @@ export default function CatalogPage({ products, stockOf, loading }) {
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {categories.map(cat => (
             <button key={cat} onClick={() => setCategory(cat)} style={{
-              padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-              border: category === cat ? '2px solid var(--black)' : '1.5px solid var(--gray-200)',
-              background: category === cat ? 'var(--black)' : 'var(--white)',
-              color: category === cat ? 'var(--white)' : 'var(--gray-600)',
+              padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+              border: category === cat ? '1.5px solid var(--accent)' : '1.5px solid var(--gray-200)',
+              background: category === cat ? 'var(--accent)' : 'var(--surface)',
+              color: category === cat ? '#111' : 'var(--gray-600)',
               cursor: 'pointer',
             }}>{cat}</button>
           ))}
@@ -83,18 +82,19 @@ export default function CatalogPage({ products, stockOf, loading }) {
       {/* Printable area */}
       <div style={{ padding: 'var(--page-pad)' }}>
         {loading ? <Spinner /> : (
-          <div id="catalog-print" style={{ background: 'var(--white)', padding: 'var(--page-pad)', borderRadius: 'var(--radius-md)' }}>
+          <div id="catalog-print">
             {/* Header */}
             <div style={{
-              background: 'var(--black)', color: 'var(--white)',
-              borderRadius: 'var(--radius-md)', padding: '16px 24px',
-              marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              background: '#111', color: '#fff', border: '1px solid var(--gray-200)',
+              borderRadius: 'var(--radius-md)', padding: '16px 22px',
+              marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Badge color="var(--accent)">CATÁLOGO</Badge>
                 <h1 style={{ fontSize: 20, fontWeight: 900, letterSpacing: '-0.02em' }}>
                   PRODUCTOS
                 </h1>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 700 }}>{visible.length} disponibles</span>
               </div>
               <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
                 {new Date().toLocaleString('es', { month: 'long', year: 'numeric' }).toUpperCase()}
@@ -109,76 +109,55 @@ export default function CatalogPage({ products, stockOf, loading }) {
             ) : (
               <div className="card-grid" style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
-                gap: 12,
+                gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))',
+                gap: 16,
               }}>
-                {visible.map(p => {
-                  const stock = stockOf(p)
-                  const outOfStock = stock <= 0
-                  return (
-                    <div key={p.id} style={{
-                      border: outOfStock
-                        ? '1.5px solid var(--gray-200)'
-                        : '1.5px solid var(--gray-200)',
-                      borderRadius: 'var(--radius-md)',
-                      overflow: 'hidden',
-                      display: 'flex', flexDirection: 'column',
-                      boxShadow: 'var(--shadow)',
-                      opacity: outOfStock ? 0.65 : 1,
-                      position: 'relative',
+                {visible.map(p => (
+                  <div key={p.id} className="product-card" style={{
+                    background: 'var(--surface)', border: '1px solid var(--gray-100)',
+                    borderRadius: 14, overflow: 'hidden',
+                    display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow)',
+                  }}>
+                    {/* Imagen: siempre sobre blanco para que las fotos de producto se vean limpias */}
+                    <div style={{
+                      aspectRatio: '1 / 1', background: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
                     }}>
-                      {/* Agotado ribbon */}
-                      {outOfStock && (
-                        <div style={{
-                          position: 'absolute', top: 12, right: -22,
-                          background: 'var(--danger)', color: 'var(--white)',
-                          fontSize: 9, fontWeight: 800, padding: '3px 28px',
-                          transform: 'rotate(35deg)', letterSpacing: '0.08em',
-                          zIndex: 2,
-                        }}>AGOTADO</div>
-                      )}
+                      {p.image_url
+                        ? <img src={p.image_url} alt={p.name} crossOrigin="anonymous" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 12 }} />
+                        : <span style={{ color: '#bbb', fontSize: 12 }}>Sin imagen</span>
+                      }
+                    </div>
 
-                      {/* Image */}
-                      <div style={{
-                        height: 170, background: 'var(--gray-50)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        overflow: 'hidden', borderBottom: '1px solid var(--gray-100)',
-                      }}>
-                        {p.image_url
-                          ? <img src={p.image_url} alt={p.name} crossOrigin="anonymous" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }} />
-                          : <span style={{ color: 'var(--gray-300)', fontSize: 12 }}>Sin imagen</span>
-                        }
-                      </div>
+                    {/* Contenido */}
+                    <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1, borderTop: '1px solid var(--gray-100)' }}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--gray-500)',
+                      }}>{p.category}</span>
 
-                      {/* Content */}
-                      <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
-                        <span style={{
-                          fontSize: 9, fontWeight: 800, textTransform: 'uppercase',
-                          letterSpacing: '0.07em', background: 'var(--black)', color: 'var(--white)',
-                          padding: '2px 7px', borderRadius: 3, alignSelf: 'flex-start',
-                        }}>{p.category}</span>
+                      <p style={{ fontWeight: 800, fontSize: 14, lineHeight: 1.3, ...clamp(2) }}>{p.name}</p>
+                      {p.model && <p style={{ fontSize: 11, color: 'var(--gray-600)', fontWeight: 600 }}>{p.model}</p>}
+                      {p.specs && <p style={{ fontSize: 11, color: 'var(--gray-500)', lineHeight: 1.5, ...clamp(3) }}>{p.specs}</p>}
 
-                        <p style={{ fontWeight: 800, fontSize: 13, lineHeight: 1.3 }}>{p.name}</p>
-                        {p.model && <p style={{ fontSize: 11, color: 'var(--gray-600)', fontWeight: 600 }}>{p.model}</p>}
-                        {p.specs && <p style={{ fontSize: 11, color: 'var(--gray-600)', lineHeight: 1.5 }}>{p.specs}</p>}
-
-                        {/* Price circle */}
-                        <div style={{ marginTop: 'auto', paddingTop: 10 }}>
-                          <div style={priceBadge}>
-                            <span style={{ fontSize: 8, fontWeight: 800, lineHeight: 1 }}>Bs.</span>
-                            <span style={{ fontSize: 21, fontWeight: 900, lineHeight: 1 }}>{p.price}</span>
-                            {p.installments && (
-                              <span style={{ fontSize: 7, fontWeight: 700, lineHeight: 1.3, textAlign: 'center', maxWidth: 64 }}>
-                                {p.installments}
-                              </span>
-                            )}
-                          </div>
+                      {/* Precio */}
+                      <div style={{ marginTop: 'auto', paddingTop: 10, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
+                        <div>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'baseline', gap: 3,
+                            background: 'var(--accent)', color: '#111', borderRadius: 8, padding: '5px 10px',
+                          }}>
+                            <span style={{ fontSize: 11, fontWeight: 800 }}>Bs.</span>
+                            <span style={{ fontSize: 20, fontWeight: 900, lineHeight: 1 }}>{p.price}</span>
+                          </span>
+                          {p.installments && (
+                            <p style={{ fontSize: 10, color: 'var(--gray-500)', fontWeight: 700, marginTop: 4 }}>{p.installments}</p>
+                          )}
                         </div>
-                        {p.code && <p style={{ fontSize: 10, color: 'var(--gray-400)' }}>Cód: {p.code}</p>}
+                        {p.code && <span style={{ fontSize: 10, color: 'var(--gray-400)', fontWeight: 700, whiteSpace: 'nowrap' }}>{p.code}</span>}
                       </div>
                     </div>
-                  )
-                })}
+                  </div>
+                ))}
               </div>
             )}
 

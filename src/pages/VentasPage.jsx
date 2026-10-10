@@ -49,7 +49,7 @@ export default function VentasPage({ productMap = {}, sales, loading }) {
     <div>
       {/* Top stats — totales generales */}
       <div style={{
-        background: 'var(--black)', padding: '16px var(--page-pad) 8px',
+        background: 'var(--band)', padding: '16px var(--page-pad) 8px',
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12,
       }}>
         <MiniCard icon={<ShoppingBag size={16}/>} label="Total vendidas" value={allStats.units} />
@@ -59,7 +59,7 @@ export default function VentasPage({ productMap = {}, sales, loading }) {
 
       {/* Per-seller row */}
       <div style={{
-        background: 'var(--black)', padding: '8px var(--page-pad) 16px',
+        background: 'var(--band)', padding: '8px var(--page-pad) 16px',
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12,
         borderTop: '1px solid rgba(255,255,255,0.06)',
       }}>
@@ -69,7 +69,7 @@ export default function VentasPage({ productMap = {}, sales, loading }) {
 
       {/* Filter bar */}
       <div style={{
-        background: 'var(--white)', borderBottom: '1px solid var(--gray-100)',
+        background: 'var(--surface)', borderBottom: '1px solid var(--gray-100)',
         padding: '12px var(--page-pad)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
       }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gray-500)', marginRight: 4 }}>Filtrar por:</span>
@@ -98,7 +98,7 @@ export default function VentasPage({ productMap = {}, sales, loading }) {
 
       {/* Sales history */}
       <div style={{ padding: 'var(--page-pad)' }}>
-        <div style={{ background: 'var(--white)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
           <div style={{
             background: 'var(--black)', color: 'var(--white)',
             padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -133,7 +133,7 @@ export default function VentasPage({ productMap = {}, sales, loading }) {
                     {/* Day header */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                       <span style={{
-                        background: 'var(--accent)', color: 'var(--black)',
+                        background: 'var(--accent)', color: '#111',
                         fontWeight: 800, fontSize: 11, padding: '3px 10px', borderRadius: 4,
                       }}>{date}</span>
                       <span style={{ fontSize: 12, color: 'var(--gray-600)' }}>
@@ -183,7 +183,7 @@ export default function VentasPage({ productMap = {}, sales, loading }) {
                                       Bs. {salePrice ?? '—'}
                                       {isCustom && (
                                         <span title={`Precio de catálogo actual: Bs. ${prod.price}`}
-                                          style={{ marginLeft: 4, fontSize: 9, background: '#e8f4fd', color: '#2196f3', borderRadius: 3, padding: '1px 5px', fontWeight: 700, verticalAlign: 'middle' }}>
+                                          style={{ marginLeft: 4, fontSize: 9, background: 'var(--tint-info)', color: '#2196f3', borderRadius: 3, padding: '1px 5px', fontWeight: 700, verticalAlign: 'middle' }}>
                                           esp.
                                         </span>
                                       )}
@@ -222,13 +222,13 @@ function MiniCard({ icon, label, value, accent }) {
       borderRadius: 'var(--radius-md)', padding: '14px 18px',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-        <span style={{ color: accent ? 'var(--black)' : 'rgba(255,255,255,0.5)' }}>{icon}</span>
+        <span style={{ color: accent ? '#111' : 'rgba(255,255,255,0.5)' }}>{icon}</span>
         <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
-          color: accent ? 'var(--black)' : 'rgba(255,255,255,0.5)' }}>
+          color: accent ? '#111' : 'rgba(255,255,255,0.5)' }}>
           {label}
         </span>
       </div>
-      <p style={{ fontSize: 22, fontWeight: 900, color: accent ? 'var(--black)' : 'var(--white)' }}>{value}</p>
+      <p style={{ fontSize: 22, fontWeight: 900, color: accent ? '#111' : 'var(--white)' }}>{value}</p>
     </div>
   )
 }

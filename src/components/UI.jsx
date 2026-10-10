@@ -18,8 +18,8 @@ export function Input({ style, ...props }) {
       style={{
         width: '100%', padding: '8px 11px',
         border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-sm)',
-        fontSize: 13, outline: 'none', color: 'var(--black)',
-        background: 'var(--white)',
+        fontSize: 13, outline: 'none', color: 'var(--text)',
+        background: 'var(--surface)',
         ...style,
       }}
       {...props}
@@ -33,8 +33,8 @@ export function Textarea({ style, ...props }) {
       style={{
         width: '100%', padding: '8px 11px',
         border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-sm)',
-        fontSize: 13, outline: 'none', color: 'var(--black)',
-        background: 'var(--white)', resize: 'vertical',
+        fontSize: 13, outline: 'none', color: 'var(--text)',
+        background: 'var(--surface)', resize: 'vertical',
         ...style,
       }}
       {...props}
@@ -48,8 +48,8 @@ export function Select({ children, style, ...props }) {
       style={{
         width: '100%', padding: '8px 11px',
         border: '1.5px solid var(--gray-200)', borderRadius: 'var(--radius-sm)',
-        fontSize: 13, outline: 'none', color: 'var(--black)',
-        background: 'var(--white)',
+        fontSize: 13, outline: 'none', color: 'var(--text)',
+        background: 'var(--surface)',
         ...style,
       }}
       {...props}
@@ -67,7 +67,7 @@ export function Btn({ variant = 'primary', style, children, ...props }) {
     cursor: 'pointer', transition: 'opacity 0.15s',
   }
   const variants = {
-    primary:   { background: 'var(--accent)',   color: 'var(--black)' },
+    primary:   { background: 'var(--accent)',   color: '#111' },
     dark:      { background: 'var(--black)',     color: 'var(--white)' },
     ghost:     { background: 'transparent', color: 'var(--gray-600)', border: '1.5px solid var(--gray-200)' },
     danger:    { background: 'var(--danger)',    color: 'var(--white)' },
@@ -98,7 +98,7 @@ export function Modal({ onClose, title, children, footer, width = 520 }) {
       }}
     >
       <div style={{
-        background: 'var(--white)', borderRadius: 'var(--radius-lg)',
+        background: 'var(--surface)', borderRadius: 'var(--radius-lg)',
         width: '100%', maxWidth: width, maxHeight: '92vh',
         display: 'flex', flexDirection: 'column',
         animation: 'fadeIn 0.18s ease',
@@ -162,7 +162,7 @@ export function Spinner() {
 export function Badge({ children, color = 'var(--black)' }) {
   return (
     <span style={{
-      background: color, color: color === 'var(--accent)' ? 'var(--black)' : 'var(--white)',
+      background: color, color: color === 'var(--accent)' ? '#111' : 'var(--white)',
       fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
       textTransform: 'uppercase', padding: '2px 8px', borderRadius: 4,
     }}>{children}</span>

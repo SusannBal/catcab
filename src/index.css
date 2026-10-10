@@ -7,9 +7,26 @@
   --gray-50: #f9f9f9;
   --gray-100: #f0f0f0;
   --gray-200: #e0e0e0;
+  --gray-300: #cccccc;
   --gray-400: #9e9e9e;
+  --gray-500: #777777;
   --gray-600: #555555;
+  --gray-700: #444444;
   --gray-800: #222222;
+  --surface: #ffffff;   /* fondo de tarjetas, inputs y barras */
+  --band: #111111;      /* franjas oscuras de resumen (Inventario, Ventas) */
+  --text: #111111;      /* texto principal */
+  --tint-danger:  #fff5f5; --tint-danger-border:  #feb2b2;
+  --tint-success: #f0fff4; --tint-success-border: #9ae6b4;
+  --tint-warn:    #fff3cd; --tint-warn-text: #856404; --tint-warn-border: #ffc107;
+  --tint-ok:      #d4edda; --tint-ok-text:   #155724; --tint-ok-border:   #28a745;
+  --tint-info:    #e8f4fd;
+  /* Dashboard */
+  --d-bg: #f4f4f2;
+  --d-fg: #111111;
+  --d-fg-rgb: 17,17,17;
+  --d-tooltip: #ffffff;
+  color-scheme: light;
   --danger: #e53e3e;
   --success: #27ae60;
   --radius-sm: 6px;
@@ -21,8 +38,36 @@
   --topbar-h: 56px;
 }
 
+/* ── Modo oscuro ── */
+:root[data-theme="dark"] {
+  --black: #2c2c2c;
+  --gray-50: #121212;
+  --gray-100: #262626;
+  --gray-200: #353535;
+  --gray-300: #555555;
+  --gray-400: #8c8c8c;
+  --gray-500: #9a9a9a;
+  --gray-600: #b5b5b5;
+  --gray-700: #cfcfcf;
+  --gray-800: #e6e6e6;
+  --surface: #1b1b1b;
+  --band: #181818;
+  --text: #ececec;
+  --shadow: 0 2px 12px rgba(0,0,0,0.5);
+  --tint-danger:  rgba(229,62,62,0.12);  --tint-danger-border:  rgba(229,62,62,0.4);
+  --tint-success: rgba(39,174,96,0.12);  --tint-success-border: rgba(39,174,96,0.4);
+  --tint-warn:    rgba(245,196,0,0.12);  --tint-warn-text: #f5c400; --tint-warn-border: rgba(245,196,0,0.5);
+  --tint-ok:      rgba(39,174,96,0.14);  --tint-ok-text:   #4cd187; --tint-ok-border:   rgba(39,174,96,0.5);
+  --tint-info:    rgba(33,150,243,0.18);
+  --d-bg: #111111;
+  --d-fg: #ffffff;
+  --d-fg-rgb: 255,255,255;
+  --d-tooltip: #1a1a1a;
+  color-scheme: dark;
+}
+
 /* ── Base ── */
-html { font-family: var(--font); background: var(--gray-50); color: var(--black); }
+html { font-family: var(--font); background: var(--gray-50); color: var(--text); }
 body { min-height: 100vh; }
 button { cursor: pointer; font-family: inherit; }
 input, select, textarea { font-family: inherit; }
@@ -87,3 +132,8 @@ input, select, textarea { font-family: inherit; }
   :root { --page-pad: 16px; }
   .hide-tablet { display: none !important; }
 }
+
+/* ── Tarjetas de producto ── */
+.product-card { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.product-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+:root[data-theme="dark"] .product-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.6); }

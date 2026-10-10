@@ -1,84 +1,105 @@
-# 📦 Catálogo de Productos
+# CablesPro · Catálogo e inventario
 
-App web para crear, gestionar y exportar catálogos de productos en PDF.  
-Tecnologías: **React + Vite · Supabase · Netlify**
+App web para manejar el catálogo, el inventario, las compras y las ventas de CablesPro.
+
+**Tecnologías:** React + Vite · Supabase (base de datos y fotos) · Netlify (publicación)
+
+Lo último que se incorporó está en [ACTUALIZACION-OCTUBRE.md](ACTUALIZACION-OCTUBRE.md).
 
 ---
 
-## 🚀 Configuración paso a paso
+## Qué hace cada pestaña
 
-### PASO 1 — Supabase
+| Pestaña | Para qué sirve |
+|---|---|
+| **Dashboard** | Ingresos, gastos y balance por mes, semana o rango; estadísticas, inventario, análisis y respaldo en Excel |
+| **Catálogo** | Productos disponibles con foto y precio; se exporta a PDF |
+| **Gestión** | Crear, editar, archivar y borrar productos |
+| **Entradas** | Registrar compras de mercadería y administrar proveedores |
+| **Inventario** | Stock disponible y registro rápido de ventas ("Vendí 1") |
+| **Ventas** | Historial de ventas por vendedor |
+| **Contáctanos** | Reportar errores, quejas o sugerencias |
 
-1. Ir a [supabase.com](https://supabase.com) → crear un proyecto nuevo
-2. Ir a **SQL Editor** → pegar y ejecutar el contenido de `supabase-setup.sql`
-3. Ir a **Project Settings > API** → copiar:
-   - `Project URL` → esta es tu `VITE_SUPABASE_URL`
-   - `anon public` key → esta es tu `VITE_SUPABASE_ANON_KEY`
-4. Ir a **Storage** → verificar que el bucket `productos` fue creado (aparece como público)
+### Conceptos clave
+- **Entradas = gastos.** Cada entrada suma stock y cuenta como gasto en el Dashboard.
+- **Ventas = ingresos.** El Dashboard muestra las ventas del vendedor F.
+- **Lotes (FIFO).** El stock inicial y cada entrada son lotes con su propio costo. Las ventas
+  descuentan del lote más antiguo con unidades, así la ganancia de cada venta usa el costo real.
+- **Archivados.** Los agotados se ocultan solos y vuelven al registrar una entrada.
 
-### PASO 2 — Variables de entorno
+---
 
-Crear el archivo `.env` en la raíz del proyecto:
+## Instalación
+
+### 1. Supabase
+1. Crear un proyecto en [supabase.com](https://supabase.com).
+2. En **SQL Editor**, ejecutar `supabase-setup.sql` (crea todas las tablas).
+   - Si la base ya existía de una versión anterior, ejecutar en su lugar los archivos
+     `migration-*.sql` indicados en [ACTUALIZACION-OCTUBRE.md](ACTUALIZACION-OCTUBRE.md).
+3. En **Project Settings > API**, copiar la `Project URL` y la clave `anon public`.
+
+### 2. Variables de entorno
+Crear un archivo `.env` en la raíz (ver `.env.example`):
 
 ```
-VITE_SUPABASE_URL=https://XXXXXXXXXXXXXXXX.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGci...tu_key...
+VITE_SUPABASE_URL=https://XXXXXXXX.supabase.co
+VITE_SUPABASE_ANON_KEY=tu_clave_anon
 ```
 
-### PASO 3 — Ejecutar localmente
+### 3. Ejecutar en tu computadora
 
 ```bash
 npm install
+```
+
+```bash
 npm run dev
 ```
 
-Abre `http://localhost:5173`
+Abrir `http://localhost:5173`.
 
-### PASO 4 — Deploy en Netlify
+### 4. Publicar en Netlify
+El sitio se publica solo al subir cambios a la rama `main` de GitHub.
 
-**Opción A — Drag & Drop (más fácil):**
-1. Ejecutar `npm run build`
-2. Arrastrar la carpeta `dist/` a [app.netlify.com/drop](https://app.netlify.com/drop)
-
-**Opción B — Conectar repositorio (recomendado):**
-1. Subir el proyecto a GitHub
-2. En Netlify: New site from Git → seleccionar repo
-3. Build command: `npm run build`
-4. Publish directory: `dist`
-5. En **Site settings > Environment variables** agregar:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
+- Build command: `npm run build`
+- Publish directory: `dist`
+- Variables de entorno en **Site settings > Environment variables**: `VITE_SUPABASE_URL` y
+  `VITE_SUPABASE_ANON_KEY`.
 
 ---
 
-## ✨ Cómo usar la app
-
-| Acción | Cómo |
-|--------|------|
-| Ver catálogo | Pantalla principal |
-| Filtrar por categoría | Botones en la barra superior |
-| Buscar producto | Campo de búsqueda |
-| Agregar producto | Botón **"+ Nuevo producto"** |
-| Editar / Borrar | Activar modo **"Editando"** → aparecen botones en cada card |
-| Exportar PDF | Botón **"Exportar PDF"** → descarga automática |
-| Cambiar título | Botón de engranaje ⚙️ → Configurar catálogo |
-
-## 🖼️ Cambiar imágenes
-
-Las imágenes se suben a Supabase Storage automáticamente al agregar/editar un producto.
-También puedes gestionar los archivos directamente desde **Supabase Dashboard > Storage > productos**.
-
-## 📁 Estructura del proyecto
+## Estructura del proyecto
 
 ```
 src/
-├── components/
-│   ├── ProductCard.jsx     — Card individual de producto
-│   ├── ProductModal.jsx    — Formulario agregar/editar
-│   ├── CatalogView.jsx     — Vista del catálogo (se exporta a PDF)
-│   └── SettingsModal.jsx   — Configuración del catálogo
+├── App.jsx                     Barra superior, pestañas y tema claro/oscuro
+├── hooks/
+│   └── useData.js              Carga y guarda todo en Supabase
 ├── lib/
-│   ├── supabase.js         — Cliente Supabase
-│   └── exportPdf.js        — Exportación a PDF
-└── App.jsx                 — App principal
+│   ├── supabase.js             Cliente de Supabase
+│   ├── lots.js                 Lotes y costo FIFO
+│   ├── exportPdf.js            Catálogo e inventario en PDF
+│   └── exportExcel.js          Respaldo en Excel
+├── components/
+│   ├── UI.jsx                  Botones, campos, modal y otros elementos comunes
+│   ├── LazyImage.jsx           Carga diferida de imágenes
+│   └── ContactSection.jsx      Pestaña Contáctanos
+└── pages/
+    ├── DashboardPage.jsx
+    ├── CatalogPage.jsx
+    ├── GestionPage.jsx
+    ├── EntradasPage.jsx
+    ├── ProveedoresSection.jsx
+    ├── InventarioPage.jsx
+    └── VentasPage.jsx
 ```
+
+### Base de datos (Supabase)
+
+| Tabla | Contenido |
+|---|---|
+| `productos` | Nombre, categoría, precios, stock inicial, foto, archivado |
+| `entradas` | Compras: producto, cantidad, costo, proveedor, fecha |
+| `ventas` | Ventas: producto, vendedor, precio y costo al momento de vender |
+| `proveedores` | Datos de contacto, lugar de compra y condiciones |
+| `reportes` | Mensajes de la pestaña Contáctanos |
