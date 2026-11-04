@@ -11,6 +11,7 @@ En esta versión la aplicación pasa a estar **enfocada exclusivamente en el ven
 ### A. Registro de ventas más rápido y directo
 - En **Inventario** (`InventarioPage.jsx`), al presionar **"Vendí 1"**, el vendedor se asigna automáticamente a **`F`**.
 - Se ocultó el selector de vendedor `¿Quién realizó la venta?` (`[S, F, N]`), haciendo el proceso de venta en 1 solo paso sin pasos extra.
+- **Identificación de compras con Fecha y Proveedor:** En el modal de venta, cada compra/lote ahora muestra la **fecha de la entrada** (ej. `15 oct. 2026`) y el **proveedor** (`🚚 Don Carlos`), permitiendo reconocer de inmediato de qué compra sale la unidad.
 
 ### B. Dinero total y estadísticas enfocadas en F
 - **Página de Ventas:** Las tarjetas superiores de "Total vendidas", "Ingresos totales" y "Ganancia total" ahora reflejan **únicamente las ventas generadas por F**.

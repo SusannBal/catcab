@@ -53,8 +53,20 @@ export function availableByCost(lots) {
   const groups = []
   lots.filter(l => l.remaining > 0).forEach(l => {
     const g = groups.find(g => sameCost(g.cost, l.cost))
-    if (g) { g.remaining += l.remaining; g.labels.push(l.label) }
-    else groups.push({ cost: l.cost, remaining: l.remaining, labels: [l.label], date: l.date })
+    if (g) {
+      g.remaining += l.remaining
+      g.labels.push(l.label)
+      g.lots.push(l)
+    }
+    else {
+      groups.push({
+        cost: l.cost,
+        remaining: l.remaining,
+        labels: [l.label],
+        date: l.date,
+        lots: [l],
+      })
+    }
   })
   return groups
 }

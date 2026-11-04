@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileDown, Minus, RotateCcw, TrendingUp, DollarSign, ShoppingBag, Package, Pencil, X, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { FileDown, Minus, RotateCcw, TrendingUp, DollarSign, ShoppingBag, Package, Pencil, X, Search, ChevronDown, ChevronUp, Calendar, Truck } from 'lucide-react'
 import { exportCatalogPdf } from '../lib/exportPdf'
 import { availableByCost } from '../lib/lots'
 import { Btn, Spinner } from '../components/UI'
@@ -279,12 +279,38 @@ export default function InventarioPage({ products, sales, entradas, stockOf, isA
                                 background: selected ? 'var(--tint-warn)' : 'var(--gray-50)',
                                 color: 'var(--text)', transition: 'all 0.15s',
                               }}>
-                              <span style={{ minWidth: 0 }}>
-                                <span style={{ display: 'block', fontSize: 13, fontWeight: 900 }}>
-                                  Costo Bs. {g.cost}
-                                  {idx === 0 && <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 900, background: 'var(--accent)', color: '#111', padding: '1px 6px', borderRadius: 4, verticalAlign: 'middle' }}>PRIMERO EN SALIR</span>}
+                              <span style={{ minWidth: 0, flex: 1 }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                  <span style={{ fontSize: 13, fontWeight: 900 }}>Costo Bs. {g.cost}</span>
+                                  {idx === 0 && <span style={{ fontSize: 9, fontWeight: 900, background: 'var(--accent)', color: '#111', padding: '1px 6px', borderRadius: 4 }}>PRIMERO EN SALIR</span>}
                                 </span>
-                                <span style={{ display: 'block', fontSize: 10, color: 'var(--gray-500)', marginTop: 1 }}>{g.labels.join(', ')}</span>
+                                <div style={{ marginTop: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                  {(g.lots || []).map((lot, li) => {
+                                    const fechaStr = lot.date && !isNaN(lot.date) && lot.date.getTime() > 0
+                                      ? lot.date.toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })
+                                      : null
+                                    return (
+                                      <div key={li} style={{ fontSize: 11, color: 'var(--gray-600)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                        <span style={{ fontWeight: 700, color: 'var(--gray-700)' }}>{lot.label}</span>
+                                        {fechaStr && (
+                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--gray-500)', fontSize: 10.5 }}>
+                                            <Calendar size={11} /> {fechaStr}
+                                          </span>
+                                        )}
+                                        {lot.proveedor && (
+                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(0,0,0,0.06)', color: 'var(--text)', fontWeight: 700, fontSize: 10.5, padding: '1px 6px', borderRadius: 4 }}>
+                                            <Truck size={11} /> {lot.proveedor}
+                                          </span>
+                                        )}
+                                        {g.lots?.length > 1 && (
+                                          <span style={{ fontSize: 10, color: 'var(--gray-400)' }}>
+                                            ({lot.remaining} ud{lot.remaining > 1 ? 's' : ''})
+                                          </span>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
+                                </div>
                               </span>
                               <span style={{ fontSize: 12, fontWeight: 800, color: g.remaining <= 2 ? 'orange' : 'var(--success)', whiteSpace: 'nowrap' }}>
                                 quedan {g.remaining}
