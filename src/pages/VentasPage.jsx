@@ -4,11 +4,18 @@ import { TrendingUp, DollarSign, ShoppingBag, User } from 'lucide-react'
 const SELLER_LABELS = { S: 'S', F: 'F', N: 'N' }
 const SELLER_COLORS = { S: '#f0c040', F: '#60c8f0', N: '#a0a0b0' }
 
+// Cambiar a false para desarchivar y mostrar los datos y filtros de los vendedores S y N
+const ARCHIVE_SELLERS_S_N = true
+
 export default function VentasPage({ productMap = {}, sales, loading }) {
-  const [filter, setFilter] = useState('all')
+  const [filter, setFilter] = useState(ARCHIVE_SELLERS_S_N ? 'F' : 'all')
 
   // Sales filtered by seller
-  const filteredSales = filter === 'all' ? sales : sales.filter(s => s.seller === filter)
+  const filteredSales = filter === 'all'
+    ? sales
+    : filter === 'archived'
+    ? sales.filter(s => s.seller === 'S' || s.seller === 'N')
+    : sales.filter(s => s.seller === filter)
 
   // Stats por vendedor — usa productMap O(1) en vez de .find() O(n) por cada venta
   function sellerStats(sellerKey) {
@@ -34,11 +41,16 @@ export default function VentasPage({ productMap = {}, sales, loading }) {
     return acc
   }, {})
 
-  const allStats = sellerStats('all')
+  const allStats = ARCHIVE_SELLERS_S_N ? sellerStats('F') : sellerStats('all')
   const sStats   = sellerStats('S')
   const fStats   = sellerStats('F')
 
-  const filterBtns = [
+  const filterBtns = ARCHIVE_SELLERS_S_N
+    ? [
+        { key: 'F',        label: 'Ventas de F',        color: SELLER_COLORS.F },
+        { key: 'archived', label: 'Archivados (S y N)', color: '#a0a0b0' },
+      ]
+    : [
     { key: 'all', label: 'Todos', color: '#ffffff' },
     { key: 'S',   label: 'S',     color: SELLER_COLORS.S },
     { key: 'F',   label: 'F',     color: SELLER_COLORS.F },
@@ -60,10 +72,10 @@ export default function VentasPage({ productMap = {}, sales, loading }) {
       {/* Per-seller row */}
       <div style={{
         background: 'var(--band)', padding: '8px var(--page-pad) 16px',
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12,
+        display: 'grid', gridTemplateColumns: ARCHIVE_SELLERS_S_N ? '1fr' : 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12,
         borderTop: '1px solid rgba(255,255,255,0.06)',
       }}>
-        <SellerCard letter="S" color={SELLER_COLORS.S} stats={sStats} />
+        {!ARCHIVE_SELLERS_S_N && <SellerCard letter="S" color={SELLER_COLORS.S} stats={sStats} />}
         <SellerCard letter="F" color={SELLER_COLORS.F} stats={fStats} />
       </div>
 
@@ -105,7 +117,7 @@ export default function VentasPage({ productMap = {}, sales, loading }) {
           }}>
             <h2 style={{ fontSize: 15, fontWeight: 900 }}>HISTORIAL DE VENTAS</h2>
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
-              {filter === 'all' ? 'Todos' : `Vendedor: ${filter}`} · {filteredSales.length} registro(s)
+              {filter === 'all' ? 'Todos' : filter === 'archived' ? 'Archivados (S y N)' : `Vendedor: ${filter}`} · {filteredSales.length} registro(s)
             </span>
           </div>
 
@@ -113,7 +125,7 @@ export default function VentasPage({ productMap = {}, sales, loading }) {
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--gray-400)', fontSize: 13 }}>Cargando...</div>
           ) : filteredSales.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'var(--gray-400)', fontSize: 13 }}>
-              No hay ventas{filter !== 'all' ? ` para el vendedor "${filter}"` : ''} aún.
+              No hay ventas{filter === 'all' ? '' : filter === 'archived' ? ' archivadas' : ` para el vendedor "${filter}"`} aún.
             </div>
           ) : (
             <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>

@@ -10,6 +10,9 @@ const PROV_FIELDS_BASE    = 'id,nombre,telefono,notas,created_at'
 const PROV_EXTRA          = ['tipo', 'contacto', 'direccion', 'ciudad', 'maps_url', 'horario', 'web', 'metodos_pago', 'tiempo_entrega', 'compra_minima', 'hace_envios', 'calificacion']
 const PROV_FIELDS         = PROV_FIELDS_BASE + ',' + PROV_EXTRA.join(',')
 
+// Configuración de vendedor enfocado ('F' para enfocar dinero en F; null para todos los vendedores)
+export const FOCUS_SELLER = 'F'
+
 // 'YYYY-MM-DD' → ISO. Si es hoy usa la hora actual; si es otro día, mediodía local (evita saltos de zona horaria)
 function dateToIso(fecha) {
   if (!fecha) return new Date().toISOString()
@@ -293,7 +296,7 @@ export function useData() {
   }
 
   // ── Sales ──────────────────────────────────────────────────────
-  async function registerSale(productId, seller = 'N', customPrice = null, customBuyCost = null) {
+  async function registerSale(productId, seller = FOCUS_SELLER || 'F', customPrice = null, customBuyCost = null) {
     const product = products.find(p => p.id === productId)
     if (!product) return
 
@@ -359,11 +362,16 @@ export function useData() {
     return !!product?.archived || stockOf(product) <= 0
   }
 
-  const totalProfit = useMemo(() => sales.reduce((acc, s) => {
-    return acc + ((s.price_at_sale ?? 0) - (s.buy_price_at_sale ?? 0))
-  }, 0), [sales])
+  const salesForTotals = useMemo(() => {
+    if (!FOCUS_SELLER) return sales
+    return sales.filter(s => s.seller === FOCUS_SELLER)
+  }, [sales])
 
-  const totalRevenue = useMemo(() => sales.reduce((acc, s) => acc + (s.price_at_sale ?? 0), 0), [sales])
+  const totalProfit = useMemo(() => salesForTotals.reduce((acc, s) => {
+    return acc + ((s.price_at_sale ?? 0) - (s.buy_price_at_sale ?? 0))
+  }, 0), [salesForTotals])
+
+  const totalRevenue = useMemo(() => salesForTotals.reduce((acc, s) => acc + (s.price_at_sale ?? 0), 0), [salesForTotals])
 
   return {
     products, sales, entradas, loading,

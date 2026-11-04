@@ -4,6 +4,9 @@ import { exportCatalogPdf } from '../lib/exportPdf'
 import { availableByCost } from '../lib/lots'
 import { Btn, Spinner } from '../components/UI'
 
+// Cambiar a false para reactivar los botones de selección de vendedor S y N al registrar ventas
+const ARCHIVE_SELLERS_S_N = true
+
 export default function InventarioPage({ products, sales, entradas, stockOf, isArchived, soldMap, totalProfit, totalRevenue, registerSale, undoLastSale, undoSaleById, getFifoCost, getLots, productMap = {}, loading }) {
   const [exporting, setExp] = useState(false)
   const [search,   setSearch] = useState('')
@@ -29,7 +32,7 @@ export default function InventarioPage({ products, sales, entradas, stockOf, isA
     } else {
       const prod = productMap[productId]
       const defaultCost = getFifoCost(productId)
-      setConfirm({ id: productId, seller: 'S', price: prod?.price ?? '', batchCost: defaultCost })
+      setConfirm({ id: productId, seller: ARCHIVE_SELLERS_S_N ? 'F' : 'S', price: prod?.price ?? '', batchCost: defaultCost })
     }
   }
 
@@ -60,7 +63,7 @@ export default function InventarioPage({ products, sales, entradas, stockOf, isA
     .sort(SORTERS[sortBy])
 
   // Total units sold
-  const totalUnits = Object.values(soldMap).reduce((a, b) => a + b, 0)
+  const totalUnits = ARCHIVE_SELLERS_S_N ? sales.filter(s => s.seller === 'F').length : Object.values(soldMap).reduce((a, b) => a + b, 0)
 
   return (
     <div>
@@ -299,7 +302,8 @@ export default function InventarioPage({ products, sales, entradas, stockOf, isA
                   )
                 })()}
 
-                {/* Seller selection */}
+                {/* Seller selection (oculto si ARCHIVE_SELLERS_S_N está activo) */}
+                {!ARCHIVE_SELLERS_S_N && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-600)' }}>¿Quién realizó la venta?</label>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -315,6 +319,8 @@ export default function InventarioPage({ products, sales, entradas, stockOf, isA
                     ))}
                   </div>
                 </div>
+
+                )}
 
                 {/* Custom price */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
