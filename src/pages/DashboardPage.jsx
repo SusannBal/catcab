@@ -16,6 +16,8 @@ const PALETTE = {
 const COL = { ...PALETTE.dark }  // ing = ingresos (ventas), gas = gastos (entradas), bal = balance, gan = ganancia
 
 // ─── Nota de novedades (se muestra una vez por versión) ───────────
+// Cambiar a true si se desea volver a mostrar el modal y botón de novedades
+const SHOW_NEWS = false
 const NEWS_KEY = 'novedades-2026-10-10e'
 const NEWS = [
   { title: 'Contáctanos', body: 'Nueva pestaña "Contáctanos" en la barra superior, junto a Ventas, con un formulario para reportar errores, quejas, sugerencias o preguntas. Los mensajes quedan guardados como pendientes y se pueden marcar como resueltos.' },
@@ -331,6 +333,7 @@ export default function DashboardPage({ sales = [], entradas = [], products = []
     }
   }
   const [showNews, setShowNews] = useState(() => {
+    if (!SHOW_NEWS) return false
     try { return localStorage.getItem(NEWS_KEY) !== 'visto' } catch { return false }
   })
   function closeNews() {
@@ -625,7 +628,7 @@ export default function DashboardPage({ sales = [], entradas = [], products = []
   return (
     <div style={{ background: 'var(--d-bg)', minHeight: '100vh', padding: '24px var(--page-pad) 48px' }}>
 
-      {showNews && <NewsModal onClose={closeNews} />}
+      {SHOW_NEWS && showNews && <NewsModal onClose={closeNews} />}
 
       {/* ── Encabezado + hoy ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -640,14 +643,16 @@ export default function DashboardPage({ sales = [], entradas = [], products = []
           <p style={{ fontSize: 12, color: 'rgba(var(--d-fg-rgb),0.35)', marginTop: 4 }}>
             {now.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
-          <button onClick={() => setShowNews(true)} style={{
+          {SHOW_NEWS && (
+            <button onClick={() => setShowNews(true)} style={{
             marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800,
             background: 'none', border: `1px solid ${COL.ing}55`, color: COL.ing, borderRadius: 99, padding: '3px 10px',
           }}>
             <Sparkles size={12} /> Novedades
           </button>
+          )}
           <button onClick={handleBackup} disabled={exporting} style={{
-            marginTop: 8, marginLeft: 6, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800,
+            marginTop: 8, marginLeft: SHOW_NEWS ? 6 : 0, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800,
             background: 'none', border: `1px solid ${COL.gan}66`, color: COL.gan, borderRadius: 99, padding: '3px 10px',
             opacity: exporting ? 0.6 : 1,
           }}>

@@ -9,6 +9,9 @@ import VentasPage    from './pages/VentasPage'
 import EntradasPage  from './pages/EntradasPage'
 import ContactSection from './components/ContactSection'
 
+// Cambiar a true si se desea volver a mostrar la pestaña "Contáctanos" en la barra de navegación
+const SHOW_CONTACT_TAB = false
+
 const TABS = [
   { id: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
   { id: 'catalogo',   label: 'Catálogo',   icon: BookOpen   },
@@ -16,7 +19,7 @@ const TABS = [
   { id: 'entradas',   label: 'Entradas',    icon: PackagePlus },
   { id: 'inventario', label: 'Inventario',  icon: BarChart3  },
   { id: 'ventas',     label: 'Ventas',      icon: ShoppingBag },
-  { id: 'contacto',   label: 'Contáctanos', icon: MessageSquare },
+  ...(SHOW_CONTACT_TAB ? [{ id: 'contacto', label: 'Contáctanos', icon: MessageSquare }] : []),
 ]
 
 // Tema guardado en este navegador; si no hay, sigue la preferencia del sistema
